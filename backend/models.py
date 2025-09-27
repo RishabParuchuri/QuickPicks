@@ -125,6 +125,7 @@ class MessageType(str, Enum):
     EVENT_RESOLVED = "event_resolved"
     EVENT_RESULTS = "event_results"  # Kept for backward compatibility
     GAME_ENDED = "game_ended"
+    BET_PLACED = "bet_placed"
     ERROR = "error"
 
 

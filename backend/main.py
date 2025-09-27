@@ -366,12 +366,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                             game_state.current_bets[player_name] = bet
                             game_state.room.players[player_name].current_bet = answer_id
                             
-                            # Broadcast updated leaderboard
-                            leaderboard_update = WebSocketMessage(
-                                type=MessageType.ROOM_UPDATE,
-                                data={"leaderboard": game_state.get_leaderboard()}
+                            # Send personal confirmation to the player who placed the bet
+                            bet_confirmation = WebSocketMessage(
+                                type=MessageType.BET_PLACED,
+                                data={"answer_id": answer_id, "message": "Bet placed successfully"}
                             )
-                            await manager.broadcast_to_room(leaderboard_update.model_dump(), room_id)
+                            await manager.send_personal_message(bet_confirmation.model_dump(), websocket)
                         else:
                             # Betting window closed
                             error_message = WebSocketMessage(

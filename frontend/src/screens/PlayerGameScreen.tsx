@@ -225,6 +225,11 @@ const PlayerGameScreen: React.FC = () => {
             });
           }
           break;
+        case 'bet_placed':
+          console.log('Bet placed successfully:', message.data);
+          // Bet confirmation received - player's answer is now locked in
+          // The hasSubmitted state was already set to true when sending the bet
+          break;
         case 'error':
           console.log('WebSocket error:', message.data?.message);
           setError(message.data?.message || 'An error occurred');
