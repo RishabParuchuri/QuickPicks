@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import HomeScreen from '../screens/HomeScreen';
 import CreateRoomScreen from '../screens/CreateRoomScreen';
 import JoinRoomScreen from '../screens/JoinRoomScreen';
+import JoinRoomByIdScreen from '../screens/JoinRoomByIdScreen';
 import HostDashboardScreen from '../screens/HostDashboardScreen';
 import PlayerGameScreen from '../screens/PlayerGameScreen';
 import AdminScreen from '../screens/AdminScreen';
@@ -15,6 +16,7 @@ const AppRouter: React.FC = () => {
         <Route path="/" element={<HomeScreen />} />
         <Route path="/create-room/:hostName" element={<CreateRoomScreen />} />
         <Route path="/join-room/:playerName" element={<JoinRoomScreen />} />
+        <Route path="/join-room-by-id/:roomId" element={<JoinRoomByIdScreen />} />
         <Route path="/host-dashboard/:roomId/:hostName" element={<HostDashboardScreen />} />
         <Route path="/player-game/:roomId/:playerName" element={<PlayerGameScreen />} />
         <Route path="/video" element={<VideoScreen />} />

@@ -14,6 +14,7 @@ const HomeScreen: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [playerName, setPlayerName] = useState('');
+  const [roomId, setRoomId] = useState('');
 
   const handleCreateRoom = () => {
     if (playerName.trim()) {
@@ -24,6 +25,12 @@ const HomeScreen: React.FC = () => {
   const handleJoinRoom = () => {
     if (playerName.trim()) {
       navigate(`/join-room/${encodeURIComponent(playerName.trim())}`);
+    }
+  };
+
+  const handleJoinByRoomId = () => {
+    if (roomId.trim()) {
+      navigate(`/join-room-by-id/${roomId.trim()}`);
     }
   };
 
@@ -69,6 +76,29 @@ const HomeScreen: React.FC = () => {
               disabled={!playerName.trim()}
             >
               Join a Game
+            </Button>
+            
+            <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', marginVertical: 15 }}>
+              Or join directly with a Room ID:
+            </Paragraph>
+            
+            <TextInput
+              label="Room ID"
+              value={roomId}
+              onChangeText={setRoomId}
+              mode="outlined"
+              style={styles.input}
+              placeholder="Enter room ID"
+              theme={{ colors: { onSurfaceVariant: theme.colors.onSurface } }}
+            />
+            
+            <Button
+              mode="outlined"
+              onPress={handleJoinByRoomId}
+              style={styles.button}
+              disabled={!roomId.trim()}
+            >
+              Join by Room ID
             </Button>
             
             <Button
