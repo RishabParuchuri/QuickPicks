@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { Provider as PaperProvider, MD3DarkTheme } from 'react-native-paper';
 import AppRouter from './router/AppRouter';
 import './App.css';
@@ -23,9 +23,15 @@ const theme = {
 };
 
 function App() {
+  const { width, height } = useWindowDimensions();
+  
   return (
     <PaperProvider theme={theme}>
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ 
+        width,
+        height,
+        backgroundColor: theme.colors.background
+      }}>
         <AppRouter />
       </View>
     </PaperProvider>

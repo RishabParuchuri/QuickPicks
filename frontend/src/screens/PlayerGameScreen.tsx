@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { 
   Title, 
   Button, 
@@ -20,6 +20,7 @@ const PlayerGameScreen: React.FC = () => {
   const navigate = useNavigate();
   const { roomId, playerName } = useParams<{ roomId: string; playerName: string }>();
   const theme = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
   const [roomInfo, setRoomInfo] = useState<any>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -206,8 +207,8 @@ const PlayerGameScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background, width: windowWidth }]}>
+      <View style={[styles.content, { width: windowWidth }]}>
         {/* Room Header - 20% of screen */}
         <Card style={[styles.roomCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
