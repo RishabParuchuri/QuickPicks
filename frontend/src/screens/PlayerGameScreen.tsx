@@ -108,46 +108,87 @@ const PlayerGameScreen: React.FC = () => {
   };
 
   const handleWebSocketMessage = (message: any) => {
-    switch (message.type) {
-      case 'room_update':
-        setRoomInfo(message.data);
-        break;
-      case 'new_event':
-        setRoomInfo((prev: any) => ({
-          ...prev,
-          room: {
-            ...prev.room,
-            current_event: message.data.event
-          },
-          leaderboard: message.data.leaderboard
-        }));
-        setSelectedAnswer(null);
-        setHasSubmitted(false);
-        setTimeRemaining(message.data.event.timer_seconds);
-        break;
-      case 'event_results':
-        setRoomInfo((prev: any) => ({
-          ...prev,
-          leaderboard: message.data.leaderboard
-        }));
-        setHasSubmitted(false);
-        setSelectedAnswer(null);
-        break;
-      case 'game_ended':
-        setRoomInfo((prev: any) => ({
-          ...prev,
-          room: {
-            ...prev.room,
-            game_status: 'completed'
-          },
-          leaderboard: message.data.final_leaderboard
-        }));
-        break;
+    console.log('WebSocket message received:', message);
+    
+    try {
+      switch (message.type) {
+        case 'room_update':
+          console.log('Room update - leaderboard:', message.data?.leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo(message.data);
+          }
+          break;
+        case 'new_event':
+          console.log('New event - leaderboard:', message.data?.leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return {
+                  room: { current_event: message.data.event },
+                  leaderboard: message.data.leaderboard || []
+                };
+              }
+              return {
+                ...prev,
+                room: {
+                  ...prev.room,
+                  current_event: message.data.event
+                },
+                leaderboard: message.data.leaderboard || []
+              };
+            });
+            setSelectedAnswer(null);
+            setHasSubmitted(false);
+            setTimeRemaining(message.data.event?.timer_seconds || 0);
+          }
+          break;
+        case 'event_results':
+          console.log('Event results - leaderboard:', message.data?.leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return { leaderboard: message.data.leaderboard || [] };
+              }
+              return {
+                ...prev,
+                leaderboard: message.data.leaderboard || []
+              };
+            });
+            setHasSubmitted(false);
+            setSelectedAnswer(null);
+          }
+          break;
+        case 'game_ended':
+          console.log('Game ended - leaderboard:', message.data?.final_leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return {
+                  room: { game_status: 'completed' },
+                  leaderboard: message.data.final_leaderboard || []
+                };
+              }
+              return {
+                ...prev,
+                room: {
+                  ...prev.room,
+                  game_status: 'completed'
+                },
+                leaderboard: message.data.final_leaderboard || []
+              };
+            });
+          }
+          break;
+        default:
+          console.log('Unknown message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Error handling WebSocket message:', error, message);
     }
   };
 
   const handleAnswerSelect = (answerId: number) => {
-    if (!hasSubmitted && roomInfo?.room?.current_event) {
+    if (!hasSubmitted && roomInfo?.room?.current_event && answerId) {
       setSelectedAnswer(answerId);
     }
   };
@@ -171,15 +212,26 @@ const PlayerGameScreen: React.FC = () => {
   };
 
   const getPlayerRank = () => {
-    if (!roomInfo?.leaderboard) return null;
-    const playerIndex = roomInfo.leaderboard.findIndex((p: any) => p.name === decodedPlayerName);
-    return playerIndex >= 0 ? playerIndex + 1 : null;
+    if (!roomInfo?.leaderboard || !Array.isArray(roomInfo.leaderboard)) return null;
+    try {
+      const validLeaderboard = roomInfo.leaderboard.filter((p: any) => p && p.name && typeof p.name === 'string');
+      const playerIndex = validLeaderboard.findIndex((p: any) => p.name === decodedPlayerName);
+      return playerIndex >= 0 ? playerIndex + 1 : null;
+    } catch (error) {
+      console.error('Error in getPlayerRank:', error);
+      return null;
+    }
   };
 
   const getPlayerScore = () => {
-    if (!roomInfo?.leaderboard) return 0;
-    const player = roomInfo.leaderboard.find((p: any) => p.name === decodedPlayerName);
-    return player?.score || 0;
+    if (!roomInfo?.leaderboard || !Array.isArray(roomInfo.leaderboard)) return 0;
+    try {
+      const player = roomInfo.leaderboard.find((p: any) => p && p.name && typeof p.name === 'string' && p.name === decodedPlayerName);
+      return player?.score || 0;
+    } catch (error) {
+      console.error('Error in getPlayerScore:', error);
+      return 0;
+    }
   };
 
   if (loading) {
@@ -215,10 +267,10 @@ const PlayerGameScreen: React.FC = () => {
             <View style={styles.roomHeader}>
               <View>
                 <Title style={{ color: theme.colors.onSurface, fontSize: 18 }}>
-                  {roomInfo.room.name}
+                  {roomInfo?.room?.name || 'Loading...'}
                 </Title>
                 <Paragraph style={{ color: theme.colors.outline }}>
-                  {roomInfo.room.game_name}
+                  {roomInfo?.room?.game_name || ''}
                 </Paragraph>
               </View>
               <View style={styles.playerStats}>
@@ -234,7 +286,7 @@ const PlayerGameScreen: React.FC = () => {
         </Card>
 
         {/* Game Status */}
-        {roomInfo.room.game_status === 'waiting' && (
+        {roomInfo?.room?.game_status === 'waiting' && (
           <Card style={[styles.statusCard, { backgroundColor: theme.colors.secondaryContainer }]}>
             <Card.Content>
               <Paragraph style={{ color: theme.colors.onSecondaryContainer, textAlign: 'center' }}>
@@ -244,7 +296,7 @@ const PlayerGameScreen: React.FC = () => {
           </Card>
         )}
 
-        {roomInfo.room.game_status === 'completed' && (
+        {roomInfo?.room?.game_status === 'completed' && (
           <Card style={[styles.statusCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
             <Card.Content>
               <Title style={{ color: theme.colors.onTertiaryContainer, textAlign: 'center' }}>
@@ -258,19 +310,19 @@ const PlayerGameScreen: React.FC = () => {
         )}
 
         {/* Current Question - 20% of screen */}
-        {roomInfo.room.current_event && (
+        {roomInfo?.room?.current_event && (
           <Card style={[styles.questionCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content>
               <View style={styles.questionHeader}>
                 <Title style={{ color: theme.colors.onSurface, fontSize: 16, flex: 1 }}>
-                  {roomInfo.room.current_event.question}
+                  {roomInfo?.room?.current_event?.question || ''}
                 </Title>
                 <View style={styles.timerContainer}>
                   <Paragraph style={{ color: theme.colors.primary, fontSize: 18, fontWeight: 'bold' }}>
                     {timeRemaining}s
                   </Paragraph>
                   <ProgressBar 
-                    progress={timeRemaining / roomInfo.room.current_event.timer_seconds}
+                    progress={roomInfo?.room?.current_event?.timer_seconds ? timeRemaining / roomInfo.room.current_event.timer_seconds : 0}
                     color={theme.colors.primary}
                     style={{ width: 40, height: 4 }}
                   />
@@ -278,17 +330,17 @@ const PlayerGameScreen: React.FC = () => {
               </View>
               
               <Paragraph style={{ color: theme.colors.outline, fontSize: 12, marginTop: 5 }}>
-                Points: {roomInfo.room.current_event.points_reward}
+                Points: {roomInfo?.room?.current_event?.points_reward || 0}
               </Paragraph>
             </Card.Content>
           </Card>
         )}
 
         {/* Answer Choices - 60% of screen */}
-        {roomInfo.room.current_event && (
+        {roomInfo?.room?.current_event && (
           <View style={styles.answersContainer}>
             <View style={styles.answersGrid}>
-              {roomInfo.room.current_event.answer_choices.map((choice: any) => (
+              {roomInfo?.room?.current_event?.answer_choices?.map((choice: any) => (
                 <Card
                   key={choice.id}
                   style={[
@@ -308,11 +360,11 @@ const PlayerGameScreen: React.FC = () => {
                       disabled={hasSubmitted || timeRemaining === 0}
                       buttonColor={selectedAnswer === choice.id ? theme.colors.primary : 'transparent'}
                     >
-                      {choice.text}
+                      {choice?.text || 'Answer'}
                     </Button>
                   </Card.Content>
                 </Card>
-              ))}
+              )) || []}
             </View>
             
             {selectedAnswer && !hasSubmitted && timeRemaining > 0 && (
@@ -344,47 +396,82 @@ const PlayerGameScreen: React.FC = () => {
               Leaderboard
             </Title>
             
-            {roomInfo.leaderboard.map((player: any, index: number) => (
-              <View key={player.name}>
-                <List.Item
-                  title={player.name}
-                  description={`${player.score} points`}
-                  left={() => (
-                    <View style={[
-                      styles.rankBadge,
-                      {
-                        backgroundColor: player.name === decodedPlayerName 
-                          ? theme.colors.primary 
-                          : theme.colors.outline
-                      }
-                    ]}>
-                      <Paragraph style={{
+            {(() => {
+              try {
+                if (!roomInfo?.leaderboard || !Array.isArray(roomInfo.leaderboard)) {
+                  return (
+                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center' }}>
+                      No players yet
+                    </Paragraph>
+                  );
+                }
+
+                const validPlayers = roomInfo.leaderboard.filter((player: any) => {
+                  return player && 
+                         typeof player === 'object' && 
+                         player.name && 
+                         typeof player.name === 'string' &&
+                         player.name.trim() !== '';
+                });
+
+                if (validPlayers.length === 0) {
+                  return (
+                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center' }}>
+                      No valid players
+                    </Paragraph>
+                  );
+                }
+
+                return validPlayers.map((player: any, index: number) => (
+                  <View key={`${player.name}-${index}`}>
+                    <List.Item
+                      title={player.name}
+                      description={`${player.score || 0} points`}
+                      left={() => (
+                        <View style={[
+                          styles.rankBadge,
+                          {
+                            backgroundColor: player.name === decodedPlayerName 
+                              ? theme.colors.primary 
+                              : theme.colors.outline
+                          }
+                        ]}>
+                          <Paragraph style={{
+                            color: player.name === decodedPlayerName 
+                              ? theme.colors.onPrimary 
+                              : theme.colors.surface,
+                            fontWeight: 'bold',
+                            fontSize: 12
+                          }}>
+                            #{index + 1}
+                          </Paragraph>
+                        </View>
+                      )}
+                      right={() => player.current_bet ? (
+                        <Chip mode="outlined" compact>
+                          Bet: {player.current_bet}
+                        </Chip>
+                      ) : null}
+                      titleStyle={{ 
                         color: player.name === decodedPlayerName 
-                          ? theme.colors.onPrimary 
-                          : theme.colors.surface,
-                        fontWeight: 'bold',
-                        fontSize: 12
-                      }}>
-                        #{index + 1}
-                      </Paragraph>
-                    </View>
-                  )}
-                  right={() => player.current_bet ? (
-                    <Chip mode="outlined" compact>
-                      Bet: {player.current_bet}
-                    </Chip>
-                  ) : null}
-                  titleStyle={{ 
-                    color: player.name === decodedPlayerName 
-                      ? theme.colors.primary 
-                      : theme.colors.onSurface,
-                    fontWeight: player.name === decodedPlayerName ? 'bold' : 'normal'
-                  }}
-                  descriptionStyle={{ color: theme.colors.outline }}
-                />
-                {index < roomInfo.leaderboard.length - 1 && <Divider />}
-              </View>
-            ))}
+                          ? theme.colors.primary 
+                          : theme.colors.onSurface,
+                        fontWeight: player.name === decodedPlayerName ? 'bold' : 'normal'
+                      }}
+                      descriptionStyle={{ color: theme.colors.outline }}
+                    />
+                    {index < validPlayers.length - 1 && <Divider />}
+                  </View>
+                ));
+              } catch (error) {
+                console.error('Error rendering leaderboard:', error, roomInfo);
+                return (
+                  <Paragraph style={{ color: theme.colors.error, textAlign: 'center' }}>
+                    Error loading leaderboard
+                  </Paragraph>
+                );
+              }
+            })()}
           </Card.Content>
         </Card>
 

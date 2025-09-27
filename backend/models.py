@@ -88,12 +88,13 @@ class GameState(BaseModel):
         """Return sorted leaderboard by score"""
         leaderboard = []
         for player_name, player in self.room.players.items():
-            leaderboard.append({
-                "name": player_name,
-                "score": player.score,
-                "current_bet": player.current_bet
-            })
-        return sorted(leaderboard, key=lambda x: x["score"], reverse=True)
+            if player_name and player:  # Ensure both name and player exist
+                leaderboard.append({
+                    "name": player_name,
+                    "score": player.score if player.score is not None else 0,
+                    "current_bet": player.current_bet
+                })
+        return sorted(leaderboard, key=lambda x: x.get("score", 0), reverse=True)
 
     def calculate_points(self, probability: float) -> int:
         """Calculate points based on event probability"""

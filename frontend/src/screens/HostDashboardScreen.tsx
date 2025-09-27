@@ -92,36 +92,77 @@ const HostDashboardScreen: React.FC = () => {
   };
 
   const handleWebSocketMessage = (message: any) => {
-    switch (message.type) {
-      case 'room_update':
-        setRoomInfo(message.data);
-        break;
-      case 'new_event':
-        setRoomInfo((prev: any) => ({
-          ...prev,
-          room: {
-            ...prev.room,
-            current_event: message.data.event
-          },
-          leaderboard: message.data.leaderboard
-        }));
-        break;
-      case 'event_results':
-        setRoomInfo((prev: any) => ({
-          ...prev,
-          leaderboard: message.data.leaderboard
-        }));
-        break;
-      case 'game_ended':
-        setRoomInfo((prev: any) => ({
-          ...prev,
-          room: {
-            ...prev.room,
-            game_status: 'completed'
-          },
-          leaderboard: message.data.final_leaderboard
-        }));
-        break;
+    console.log('Host WebSocket message received:', message);
+    
+    try {
+      switch (message.type) {
+        case 'room_update':
+          console.log('Host room update - leaderboard:', message.data?.leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo(message.data);
+          }
+          break;
+        case 'new_event':
+          console.log('Host new event - leaderboard:', message.data?.leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return {
+                  room: { current_event: message.data.event },
+                  leaderboard: message.data.leaderboard || []
+                };
+              }
+              return {
+                ...prev,
+                room: {
+                  ...prev.room,
+                  current_event: message.data.event
+                },
+                leaderboard: message.data.leaderboard || []
+              };
+            });
+          }
+          break;
+        case 'event_results':
+          console.log('Host event results - leaderboard:', message.data?.leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return { leaderboard: message.data.leaderboard || [] };
+              }
+              return {
+                ...prev,
+                leaderboard: message.data.leaderboard || []
+              };
+            });
+          }
+          break;
+        case 'game_ended':
+          console.log('Host game ended - leaderboard:', message.data?.final_leaderboard);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return {
+                  room: { game_status: 'completed' },
+                  leaderboard: message.data.final_leaderboard || []
+                };
+              }
+              return {
+                ...prev,
+                room: {
+                  ...prev.room,
+                  game_status: 'completed'
+                },
+                leaderboard: message.data.final_leaderboard || []
+              };
+            });
+          }
+          break;
+        default:
+          console.log('Host unknown message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Error handling Host WebSocket message:', error, message);
     }
   };
 
@@ -212,29 +253,29 @@ const HostDashboardScreen: React.FC = () => {
             <View style={styles.roomHeader}>
               <View>
                 <Title style={{ color: theme.colors.onSurface, fontSize: 20 }}>
-                  {roomInfo.room.name}
+                  {roomInfo?.room?.name || 'Loading...'}
                 </Title>
                 <Paragraph style={{ color: theme.colors.onSurface }}>
-                  {roomInfo.room.game_name}
+                  {roomInfo?.room?.game_name || ''}
                 </Paragraph>
               </View>
               <Chip 
                 mode="outlined"
-                textStyle={{ color: getGameStatusColor(roomInfo.room.game_status) }}
-                style={{ borderColor: getGameStatusColor(roomInfo.room.game_status) }}
+                textStyle={{ color: getGameStatusColor(roomInfo?.room?.game_status || '') }}
+                style={{ borderColor: getGameStatusColor(roomInfo?.room?.game_status || '') }}
               >
-                {getGameStatusText(roomInfo.room.game_status)}
+                {getGameStatusText(roomInfo?.room?.game_status || '')}
               </Chip>
             </View>
             
             <Paragraph style={{ color: theme.colors.outline, marginTop: 10 }}>
-              Room ID: {roomInfo.room.id}
+              Room ID: {roomInfo?.room?.id || ''}
             </Paragraph>
           </Card.Content>
         </Card>
 
         {/* Game Controls */}
-        {roomInfo.room.game_status === 'waiting' && (
+        {roomInfo?.room?.game_status === 'waiting' && (
           <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             <Card.Content>
               <Paragraph style={{ color: theme.colors.onSurface, marginBottom: 15 }}>
@@ -244,7 +285,7 @@ const HostDashboardScreen: React.FC = () => {
                 mode="contained"
                 onPress={handleStartGame}
                 style={{ backgroundColor: theme.colors.primary }}
-                disabled={startingGame || Object.keys(roomInfo.room.players).length === 0}
+                disabled={startingGame || Object.keys(roomInfo?.room?.players || {}).length === 0}
                 loading={startingGame}
               >
                 Start Game
@@ -254,27 +295,27 @@ const HostDashboardScreen: React.FC = () => {
         )}
 
         {/* Current Event */}
-        {roomInfo.room.current_event && (
+        {roomInfo?.room?.current_event && (
           <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             <Card.Content>
               <Title style={{ color: theme.colors.onSurface, fontSize: 18 }}>
                 Current Question
               </Title>
               <Paragraph style={{ color: theme.colors.onSurface, marginVertical: 10 }}>
-                {roomInfo.room.current_event.question}
+                {roomInfo?.room?.current_event?.question || ''}
               </Paragraph>
               
               <View style={styles.answerChoices}>
-                {roomInfo.room.current_event.answer_choices.map((choice: any) => (
-                  <Chip key={choice.id} style={styles.answerChip} mode="outlined">
-                    {choice.text}
+                {roomInfo?.room?.current_event?.answer_choices?.map((choice: any) => (
+                  <Chip key={choice?.id || Math.random()} style={styles.answerChip} mode="outlined">
+                    {choice?.text || 'Answer'}
                   </Chip>
-                ))}
+                )) || []}
               </View>
               
               <Paragraph style={{ color: theme.colors.outline, marginTop: 10 }}>
-                Timer: {roomInfo.room.current_event.timer_seconds}s | 
-                Points: {roomInfo.room.current_event.points_reward}
+                Timer: {roomInfo?.room?.current_event?.timer_seconds || 0}s | 
+                Points: {roomInfo?.room?.current_event?.points_reward || 0}
               </Paragraph>
             </Card.Content>
           </Card>
@@ -284,33 +325,72 @@ const HostDashboardScreen: React.FC = () => {
         <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             <Title style={{ color: theme.colors.onSurface, fontSize: 18 }}>
-              Players ({Object.keys(roomInfo.room.players).length})
+              Players ({Object.keys(roomInfo?.room?.players || {}).length})
             </Title>
             
-            {Object.keys(roomInfo.room.players).length === 0 ? (
-              <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', marginTop: 20 }}>
-                No players joined yet. Share the room ID with players.
-              </Paragraph>
-            ) : (
-              roomInfo.leaderboard.map((player: any, index: number) => (
-                <View key={player.name}>
-                  <List.Item
-                    title={player.name}
-                    description={`Score: ${player.score}${player.current_bet ? ` | Current bet: Answer ${player.current_bet}` : ''}`}
-                    left={(props) => (
-                      <View style={[styles.rankBadge, { backgroundColor: theme.colors.primary }]}>
-                        <Paragraph style={{ color: theme.colors.onPrimary, fontWeight: 'bold' }}>
-                          #{index + 1}
-                        </Paragraph>
-                      </View>
-                    )}
-                    titleStyle={{ color: theme.colors.onSurface }}
-                    descriptionStyle={{ color: theme.colors.outline }}
-                  />
-                  {index < roomInfo.leaderboard.length - 1 && <Divider />}
-                </View>
-              ))
-            )}
+            {(() => {
+              try {
+                const playerCount = Object.keys(roomInfo?.room?.players || {}).length;
+                
+                if (playerCount === 0) {
+                  return (
+                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', marginTop: 20 }}>
+                      No players joined yet. Share the room ID with players.
+                    </Paragraph>
+                  );
+                }
+
+                if (!roomInfo?.leaderboard || !Array.isArray(roomInfo.leaderboard)) {
+                  return (
+                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', marginTop: 20 }}>
+                      Loading players...
+                    </Paragraph>
+                  );
+                }
+
+                const validPlayers = roomInfo.leaderboard.filter((player: any) => {
+                  return player && 
+                         typeof player === 'object' && 
+                         player.name && 
+                         typeof player.name === 'string' &&
+                         player.name.trim() !== '';
+                });
+
+                if (validPlayers.length === 0) {
+                  return (
+                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', marginTop: 20 }}>
+                      No valid players found
+                    </Paragraph>
+                  );
+                }
+
+                return validPlayers.map((player: any, index: number) => (
+                  <View key={`host-${player.name}-${index}`}>
+                    <List.Item
+                      title={player.name}
+                      description={`Score: ${player.score || 0}${player.current_bet ? ` | Current bet: Answer ${player.current_bet}` : ''}`}
+                      left={(props) => (
+                        <View style={[styles.rankBadge, { backgroundColor: theme.colors.primary }]}>
+                          <Paragraph style={{ color: theme.colors.onPrimary, fontWeight: 'bold' }}>
+                            #{index + 1}
+                          </Paragraph>
+                        </View>
+                      )}
+                      titleStyle={{ color: theme.colors.onSurface }}
+                      descriptionStyle={{ color: theme.colors.outline }}
+                    />
+                    {index < validPlayers.length - 1 && <Divider />}
+                  </View>
+                ));
+              } catch (error) {
+                console.error('Error rendering host leaderboard:', error, roomInfo);
+                return (
+                  <Paragraph style={{ color: theme.colors.error, textAlign: 'center', marginTop: 20 }}>
+                    Error loading players
+                  </Paragraph>
+                );
+              }
+            })()}
           </Card.Content>
         </Card>
 
