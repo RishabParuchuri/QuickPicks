@@ -15,6 +15,13 @@ from models import (
 )
 from game_data import AVAILABLE_GAMES, get_game_by_id, get_events_for_game, get_event_schedule_for_game
 
+# Custom JSON encoder for datetime objects
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,7 +65,7 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: dict, websocket: WebSocket):
         try:
-            await websocket.send_text(json.dumps(message))
+            await websocket.send_text(json.dumps(message, cls=DateTimeEncoder))
         except Exception as e:
             logger.error(f"Error sending personal message: {e}")
 
@@ -67,7 +74,7 @@ class ConnectionManager:
             disconnected = []
             for connection in self.active_connections[room_id]:
                 try:
-                    await connection.send_text(json.dumps(message))
+                    await connection.send_text(json.dumps(message, cls=DateTimeEncoder))
                 except Exception as e:
                     logger.error(f"Error broadcasting to room {room_id}: {e}")
                     disconnected.append(connection)
@@ -141,7 +148,7 @@ async def resolve_event(room_id: str, event_id: str):
         }
     )
     
-    await manager.broadcast_to_room(message.dict(), room_id)
+    await manager.broadcast_to_room(message.model_dump(), room_id)
     
     # Check if game is complete
     events_for_game = get_events_for_game("lions_ravens_demo")  # Hardcoded for demo
@@ -173,12 +180,12 @@ async def schedule_next_event(room_id: str):
         message = WebSocketMessage(
             type=MessageType.NEW_EVENT,
             data={
-                "event": next_event.dict(),
+                "event": next_event.model_dump(),
                 "leaderboard": game_state.get_leaderboard()
             }
         )
         
-        await manager.broadcast_to_room(message.dict(), room_id)
+        await manager.broadcast_to_room(message.model_dump(), room_id)
         
         # Start timer for this event
         if room_id in room_timers:
@@ -201,7 +208,7 @@ async def end_game(room_id: str):
         }
     )
     
-    await manager.broadcast_to_room(message.dict(), room_id)
+    await manager.broadcast_to_room(message.model_dump(), room_id)
     
     # Clean up timer
     if room_id in room_timers:
@@ -244,7 +251,7 @@ async def get_room_info(room_id: str):
     
     game_state = game_states[room_id]
     return {
-        "room": game_state.room.dict(),
+        "room": game_state.room.model_dump(),
         "leaderboard": game_state.get_leaderboard()
     }
 
@@ -286,25 +293,25 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         room_update = WebSocketMessage(
             type=MessageType.ROOM_UPDATE,
             data={
-                "room": game_state.room.dict(),
+                "room": game_state.room.model_dump(),
                 "leaderboard": game_state.get_leaderboard(),
-                "current_event": game_state.room.current_event.dict() if game_state.room.current_event else None
+                "current_event": game_state.room.current_event.model_dump() if game_state.room.current_event else None
             }
         )
         
-        await manager.send_personal_message(room_update.dict(), websocket)
+        await manager.send_personal_message(room_update.model_dump(), websocket)
         
         # Broadcast to all room members that a new player joined
         player_joined_update = WebSocketMessage(
             type=MessageType.ROOM_UPDATE,
             data={
-                "room": game_state.room.dict(),
+                "room": game_state.room.model_dump(),
                 "leaderboard": game_state.get_leaderboard(),
                 "message": f"{player_name} joined the room"
             }
         )
         
-        await manager.broadcast_to_room(player_joined_update.dict(), room_id)
+        await manager.broadcast_to_room(player_joined_update.model_dump(), room_id)
         
         # Listen for messages
         while True:
@@ -324,7 +331,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                         type=MessageType.ROOM_UPDATE,
                         data={"leaderboard": game_state.get_leaderboard()}
                     )
-                    await manager.broadcast_to_room(leaderboard_update.dict(), room_id)
+                    await manager.broadcast_to_room(leaderboard_update.model_dump(), room_id)
             
             elif message_type == MessageType.START_GAME and player_name == game_state.room.host_name:
                 if game_state.room.game_status == GameStatus.WAITING:
@@ -342,12 +349,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                 player_left_update = WebSocketMessage(
                     type=MessageType.ROOM_UPDATE,
                     data={
-                        "room": game_states[room_id].room.dict(),
+                        "room": game_states[room_id].room.model_dump(),
                         "leaderboard": game_states[room_id].get_leaderboard(),
                         "message": f"{player_name} left the room"
                     }
                 )
-                await manager.broadcast_to_room(player_left_update.dict(), room_id)
+                await manager.broadcast_to_room(player_left_update.model_dump(), room_id)
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         if player_name and room_id:
