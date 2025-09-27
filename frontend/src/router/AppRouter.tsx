@@ -6,6 +6,7 @@ import JoinRoomScreen from '../screens/JoinRoomScreen';
 import HostDashboardScreen from '../screens/HostDashboardScreen';
 import PlayerGameScreen from '../screens/PlayerGameScreen';
 import AdminScreen from '../screens/AdminScreen';
+import VideoScreen from '../screens/VideoScreen';
 
 const AppRouter: React.FC = () => {
   return (
@@ -16,6 +17,7 @@ const AppRouter: React.FC = () => {
         <Route path="/join-room/:playerName" element={<JoinRoomScreen />} />
         <Route path="/host-dashboard/:roomId/:hostName" element={<HostDashboardScreen />} />
         <Route path="/player-game/:roomId/:playerName" element={<PlayerGameScreen />} />
+        <Route path="/video" element={<VideoScreen />} />
         <Route path="/admin" element={<AdminScreen />} />
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

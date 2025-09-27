@@ -220,6 +220,10 @@ const HostDashboardScreen: React.FC = () => {
         type: 'start_game',
         data: {}
       }));
+      
+      // Trigger video start for independent video player
+      localStorage.setItem('gameStarted', 'true');
+      window.dispatchEvent(new CustomEvent('gameStarted'));
     } catch (err) {
       setError('Failed to start game');
     } finally {
