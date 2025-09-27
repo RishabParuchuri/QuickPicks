@@ -118,7 +118,51 @@ const HostDashboardScreen: React.FC = () => {
                   ...prev.room,
                   current_event: message.data.event
                 },
-                leaderboard: message.data.leaderboard || []
+                leaderboard: message.data.leaderboard || [],
+                eventStatus: 'active'
+              };
+            });
+          }
+          break;
+        case 'betting_closed':
+          console.log('Host betting closed - waiting for resolution');
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => ({
+              ...prev,
+              leaderboard: message.data.leaderboard || prev?.leaderboard || [],
+              eventStatus: 'betting_closed',
+              resolutionTimeRemaining: message.data.resolution_in_seconds || 0
+            }));
+          }
+          break;
+        case 'event_resolved':
+          console.log('Host event resolved - results:', message.data);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return {
+                  room: { current_event: null },
+                  leaderboard: message.data.leaderboard || [],
+                  lastEventResult: {
+                    correct_answer_id: message.data.correct_answer_id,
+                    correct_answer_text: message.data.correct_answer_text,
+                    results: message.data.results
+                  }
+                };
+              }
+              return {
+                ...prev,
+                room: {
+                  ...prev.room,
+                  current_event: null
+                },
+                leaderboard: message.data.leaderboard || [],
+                eventStatus: 'resolved',
+                lastEventResult: {
+                  correct_answer_id: message.data.correct_answer_id,
+                  correct_answer_text: message.data.correct_answer_text,
+                  results: message.data.results
+                }
               };
             });
           }
@@ -294,6 +338,41 @@ const HostDashboardScreen: React.FC = () => {
           </Card>
         )}
 
+        {/* Event Status */}
+        {roomInfo?.eventStatus === 'betting_closed' && (
+          <Card style={[styles.card, { backgroundColor: theme.colors.errorContainer }]}>
+            <Card.Content>
+              <Title style={{ color: theme.colors.onErrorContainer, fontSize: 16 }}>
+                ⏳ Betting Closed
+              </Title>
+              <Paragraph style={{ color: theme.colors.onErrorContainer }}>
+                Waiting for event resolution...
+              </Paragraph>
+              {roomInfo?.resolutionTimeRemaining > 0 && (
+                <Paragraph style={{ color: theme.colors.onErrorContainer, fontSize: 12 }}>
+                  Resolution in {roomInfo.resolutionTimeRemaining}s
+                </Paragraph>
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
+        {roomInfo?.eventStatus === 'resolved' && roomInfo?.lastEventResult && (
+          <Card style={[styles.card, { backgroundColor: theme.colors.tertiaryContainer }]}>
+            <Card.Content>
+              <Title style={{ color: theme.colors.onTertiaryContainer, fontSize: 16 }}>
+                📊 Event Resolved
+              </Title>
+              <Paragraph style={{ color: theme.colors.onTertiaryContainer }}>
+                Correct Answer: {roomInfo.lastEventResult.correct_answer_text}
+              </Paragraph>
+              <Paragraph style={{ color: theme.colors.onTertiaryContainer, fontSize: 12 }}>
+                Players who answered correctly received points
+              </Paragraph>
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Current Event */}
         {roomInfo?.room?.current_event && (
           <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
@@ -307,7 +386,7 @@ const HostDashboardScreen: React.FC = () => {
               
               <View style={styles.answerChoices}>
                 {roomInfo?.room?.current_event?.answer_choices?.map((choice: any) => (
-                  <Chip key={choice?.id || Math.random()} style={styles.answerChip} mode="outlined">
+                  <Chip key={choice?.id} mode="outlined" style={styles.answerChip}>
                     {choice?.text || 'Answer'}
                   </Chip>
                 )) || []}
@@ -315,13 +394,12 @@ const HostDashboardScreen: React.FC = () => {
               
               <Paragraph style={{ color: theme.colors.outline, marginTop: 10 }}>
                 Timer: {roomInfo?.room?.current_event?.timer_seconds || 0}s | 
-                Points: {roomInfo?.room?.current_event?.points_reward || 0}
+                Points: {roomInfo?.room?.current_event?.points_reward || 0} |
+                Resolution Delay: {roomInfo?.room?.current_event?.resolution_delay_seconds || 0}s
               </Paragraph>
             </Card.Content>
           </Card>
-        )}
-
-        {/* Players List */}
+        )}        {/* Players List */}
         <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             <Title style={{ color: theme.colors.onSurface, fontSize: 18 }}>

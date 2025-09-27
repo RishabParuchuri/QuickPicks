@@ -52,7 +52,8 @@ DEMO_EVENTS = [
         correct_answer_id=1,
         probability=0.45,  # Medium probability
         points_reward=50,
-        timer_seconds=30
+        timer_seconds=30,
+        resolution_delay_seconds=10  # 10s delay for suspense
     ),
     Event(
         id="event_2", 
@@ -66,7 +67,8 @@ DEMO_EVENTS = [
         correct_answer_id=2,
         probability=0.6,  # Higher probability
         points_reward=25,
-        timer_seconds=20
+        timer_seconds=20,
+        resolution_delay_seconds=8  # Shorter delay for quick play
     ),
     Event(
         id="event_3",
@@ -78,7 +80,8 @@ DEMO_EVENTS = [
         correct_answer_id=2,
         probability=0.25,  # Lower probability
         points_reward=100,
-        timer_seconds=25
+        timer_seconds=25,
+        resolution_delay_seconds=12  # Longer delay for higher stakes
     ),
     Event(
         id="event_4",
@@ -91,7 +94,8 @@ DEMO_EVENTS = [
         correct_answer_id=1,
         probability=0.4,  # Even-ish odds
         points_reward=50,
-        timer_seconds=35
+        timer_seconds=35,
+        resolution_delay_seconds=15  # Longer delay for scoring prediction
     ),
     Event(
         id="event_5",
@@ -103,7 +107,8 @@ DEMO_EVENTS = [
         correct_answer_id=2,
         probability=0.8,  # High probability
         points_reward=10,
-        timer_seconds=15
+        timer_seconds=15,
+        resolution_delay_seconds=5  # Quick resolution for simple question
     ),
     Event(
         id="event_6",
@@ -116,7 +121,8 @@ DEMO_EVENTS = [
         correct_answer_id=2,
         probability=0.35,  # Lower probability
         points_reward=150,
-        timer_seconds=45
+        timer_seconds=45,
+        resolution_delay_seconds=20  # Longest delay for final prediction
     )
 ]
 

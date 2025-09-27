@@ -142,6 +142,52 @@ const PlayerGameScreen: React.FC = () => {
             setTimeRemaining(message.data.event?.timer_seconds || 0);
           }
           break;
+        case 'betting_closed':
+          console.log('Betting closed - waiting for resolution');
+          if (message.data && typeof message.data === 'object') {
+            setTimeRemaining(0); // Stop the timer
+            setRoomInfo((prev: any) => ({
+              ...prev,
+              leaderboard: message.data.leaderboard || prev?.leaderboard || [],
+              bettingStatus: 'closed',
+              resolutionTimeRemaining: message.data.resolution_in_seconds || 0
+            }));
+          }
+          break;
+        case 'event_resolved':
+          console.log('Event resolved - results:', message.data);
+          if (message.data && typeof message.data === 'object') {
+            setRoomInfo((prev: any) => {
+              if (!prev || typeof prev !== 'object') {
+                return {
+                  room: { current_event: null },
+                  leaderboard: message.data.leaderboard || [],
+                  lastEventResult: {
+                    correct_answer_id: message.data.correct_answer_id,
+                    correct_answer_text: message.data.correct_answer_text,
+                    results: message.data.results
+                  }
+                };
+              }
+              return {
+                ...prev,
+                room: {
+                  ...prev.room,
+                  current_event: null
+                },
+                leaderboard: message.data.leaderboard || [],
+                bettingStatus: 'resolved',
+                lastEventResult: {
+                  correct_answer_id: message.data.correct_answer_id,
+                  correct_answer_text: message.data.correct_answer_text,
+                  results: message.data.results
+                }
+              };
+            });
+            setHasSubmitted(false);
+            setSelectedAnswer(null);
+          }
+          break;
         case 'event_results':
           console.log('Event results - leaderboard:', message.data?.leaderboard);
           if (message.data && typeof message.data === 'object') {
@@ -178,6 +224,10 @@ const PlayerGameScreen: React.FC = () => {
               };
             });
           }
+          break;
+        case 'error':
+          console.log('WebSocket error:', message.data?.message);
+          setError(message.data?.message || 'An error occurred');
           break;
         default:
           console.log('Unknown message type:', message.type);
@@ -292,6 +342,39 @@ const PlayerGameScreen: React.FC = () => {
               <Paragraph style={{ color: theme.colors.onSecondaryContainer, textAlign: 'center' }}>
                 🕐 Waiting for host to start the game...
               </Paragraph>
+            </Card.Content>
+          </Card>
+        )}
+
+        {roomInfo?.bettingStatus === 'closed' && (
+          <Card style={[styles.statusCard, { backgroundColor: theme.colors.errorContainer }]}>
+            <Card.Content>
+              <Paragraph style={{ color: theme.colors.onErrorContainer, textAlign: 'center' }}>
+                ⏳ Betting closed! Waiting for results...
+              </Paragraph>
+              {roomInfo?.resolutionTimeRemaining > 0 && (
+                <Paragraph style={{ color: theme.colors.onErrorContainer, textAlign: 'center', fontSize: 12 }}>
+                  Resolution in {roomInfo.resolutionTimeRemaining}s
+                </Paragraph>
+              )}
+            </Card.Content>
+          </Card>
+        )}
+
+        {roomInfo?.bettingStatus === 'resolved' && roomInfo?.lastEventResult && (
+          <Card style={[styles.statusCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
+            <Card.Content>
+              <Title style={{ color: theme.colors.onTertiaryContainer, textAlign: 'center', fontSize: 16 }}>
+                📊 Question Resolved!
+              </Title>
+              <Paragraph style={{ color: theme.colors.onTertiaryContainer, textAlign: 'center' }}>
+                Correct Answer: {roomInfo.lastEventResult.correct_answer_text}
+              </Paragraph>
+              {roomInfo.lastEventResult.results?.[decodedPlayerName] !== undefined && (
+                <Paragraph style={{ color: theme.colors.onTertiaryContainer, textAlign: 'center', fontWeight: 'bold' }}>
+                  You earned: {roomInfo.lastEventResult.results[decodedPlayerName]} points
+                </Paragraph>
+              )}
             </Card.Content>
           </Card>
         )}

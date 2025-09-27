@@ -91,12 +91,41 @@ def generate_room_id() -> str:
     return str(uuid.uuid4())[:8]
 
 async def start_event_timer(room_id: str, event: Event):
-    """Start timer for an event"""
+    """Start two-phase timer for an event: betting phase + resolution phase"""
     try:
+        # Phase 1: Betting window
         await asyncio.sleep(event.timer_seconds)
+        await close_betting(room_id, event.id)
+        
+        # Phase 2: Resolution delay
+        await asyncio.sleep(event.resolution_delay_seconds)
         await resolve_event(room_id, event.id)
     except asyncio.CancelledError:
         logger.info(f"Timer cancelled for event {event.id} in room {room_id}")
+
+async def close_betting(room_id: str, event_id: str):
+    """Close betting window and show 'waiting for resolution' state"""
+    if room_id not in game_states:
+        return
+
+    game_state = game_states[room_id]
+    event = game_state.room.current_event
+    
+    if not event or event.id != event_id:
+        return
+
+    # Broadcast betting closed message
+    message = WebSocketMessage(
+        type=MessageType.BETTING_CLOSED,
+        data={
+            "event_id": event_id,
+            "event": event.model_dump(),
+            "leaderboard": game_state.get_leaderboard(),
+            "resolution_in_seconds": event.resolution_delay_seconds
+        }
+    )
+    
+    await manager.broadcast_to_room(message.model_dump(), room_id)
 
 async def resolve_event(room_id: str, event_id: str):
     """Resolve an event and calculate scores"""
@@ -137,14 +166,16 @@ async def resolve_event(room_id: str, event_id: str):
     for player in game_state.room.players.values():
         player.current_bet = None
 
-    # Broadcast results
+    # Broadcast event resolved with results
     message = WebSocketMessage(
-        type=MessageType.EVENT_RESULTS,
+        type=MessageType.EVENT_RESOLVED,
         data={
             "event_id": event_id,
             "correct_answer_id": event.correct_answer_id,
+            "correct_answer_text": next((choice.text for choice in event.answer_choices if choice.id == event.correct_answer_id), "Unknown"),
             "results": results,
-            "leaderboard": game_state.get_leaderboard()
+            "leaderboard": game_state.get_leaderboard(),
+            "event": event.model_dump()
         }
     )
     
@@ -223,7 +254,9 @@ async def root():
 @app.get("/games", response_model=AvailableGamesResponse)
 async def get_available_games():
     """Get list of available games"""
-    return AvailableGamesResponse(games=AVAILABLE_GAMES)
+    from models import GameInfo
+    games = [GameInfo(**game) for game in AVAILABLE_GAMES]
+    return AvailableGamesResponse(games=games)
 
 @app.post("/create-game", response_model=CreateRoomResponse)
 async def create_room(request: CreateRoomRequest):
@@ -322,16 +355,37 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             if message_type == MessageType.PLACE_BET:
                 answer_id = message_data.get("data", {}).get("answer_id")
                 if answer_id and game_state.room.current_event:
-                    bet = PlayerBet(player_name=player_name, answer_id=answer_id)
-                    game_state.current_bets[player_name] = bet
-                    game_state.room.players[player_name].current_bet = answer_id
-                    
-                    # Broadcast updated leaderboard
-                    leaderboard_update = WebSocketMessage(
-                        type=MessageType.ROOM_UPDATE,
-                        data={"leaderboard": game_state.get_leaderboard()}
-                    )
-                    await manager.broadcast_to_room(leaderboard_update.model_dump(), room_id)
+                    # Check if betting window is still open (event is active)
+                    if game_state.room.current_event.status == EventStatus.ACTIVE:
+                        # Check if betting deadline has passed
+                        current_time = datetime.now()
+                        if (game_state.room.current_event.expires_at and 
+                            current_time <= game_state.room.current_event.expires_at):
+                            
+                            bet = PlayerBet(player_name=player_name, answer_id=answer_id)
+                            game_state.current_bets[player_name] = bet
+                            game_state.room.players[player_name].current_bet = answer_id
+                            
+                            # Broadcast updated leaderboard
+                            leaderboard_update = WebSocketMessage(
+                                type=MessageType.ROOM_UPDATE,
+                                data={"leaderboard": game_state.get_leaderboard()}
+                            )
+                            await manager.broadcast_to_room(leaderboard_update.model_dump(), room_id)
+                        else:
+                            # Betting window closed
+                            error_message = WebSocketMessage(
+                                type=MessageType.ERROR,
+                                data={"message": "Betting window has closed"}
+                            )
+                            await manager.send_personal_message(error_message.model_dump(), websocket)
+                    else:
+                        # Event not active (completed or pending)
+                        error_message = WebSocketMessage(
+                            type=MessageType.ERROR,
+                            data={"message": "No active betting event"}
+                        )
+                        await manager.send_personal_message(error_message.model_dump(), websocket)
             
             elif message_type == MessageType.START_GAME and player_name == game_state.room.host_name:
                 if game_state.room.game_status == GameStatus.WAITING:
