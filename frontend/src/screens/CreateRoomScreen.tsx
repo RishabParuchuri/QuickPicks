@@ -52,7 +52,7 @@ const CreateRoomScreen: React.FC = () => {
 
     const selectedGameData = games.find(g => g.id === selectedGame);
     if (!selectedGameData?.has_events) {
-      setError('Selected game is not available for betting yet');
+      setError('Selected game is not available for trivia yet');
       return;
     }
 
@@ -121,7 +121,7 @@ const CreateRoomScreen: React.FC = () => {
                   />
                   {!game.has_events && (
                     <Paragraph style={[styles.disabledText, { color: theme.colors.outline }]}>
-                      (Not available for betting)
+                      (Not available for trivia)
                     </Paragraph>
                   )}
                 </View>
@@ -155,7 +155,7 @@ const CreateRoomScreen: React.FC = () => {
           <Card style={[styles.warningCard, { backgroundColor: theme.colors.errorContainer }]}>
             <Card.Content>
               <Paragraph style={{ color: theme.colors.onErrorContainer }}>
-                This game is not yet available for live betting. Please select "Lions vs Ravens @ 7pm" for the demo.
+                This game is not yet available for live trivia. Please select "Lions vs Ravens @ 7pm" for the demo.
               </Paragraph>
             </Card.Content>
           </Card>

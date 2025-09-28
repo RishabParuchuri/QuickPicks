@@ -125,13 +125,13 @@ const HostDashboardScreen: React.FC = () => {
             });
           }
           break;
-        case 'betting_closed':
-          console.log('Host betting closed - waiting for resolution');
+        case 'answers_closed':
+          console.log('Host answers closed - waiting for resolution');
           if (message.data && typeof message.data === 'object') {
             setRoomInfo((prev: any) => ({
               ...prev,
               leaderboard: message.data.leaderboard || prev?.leaderboard || [],
-              eventStatus: 'betting_closed',
+              eventStatus: 'answers_closed',
               resolutionTimeRemaining: message.data.resolution_in_seconds || 0
             }));
           }
@@ -343,11 +343,11 @@ const HostDashboardScreen: React.FC = () => {
         )}
 
         {/* Event Status */}
-        {roomInfo?.eventStatus === 'betting_closed' && (
+        {roomInfo?.eventStatus === 'answers_closed' && (
           <Card style={[styles.card, { backgroundColor: theme.colors.errorContainer }]}>
             <Card.Content>
               <Title style={{ color: theme.colors.onErrorContainer, fontSize: 16 }}>
-                ⏳ Betting Closed
+                ⏳ Answers Closed
               </Title>
               <Paragraph style={{ color: theme.colors.onErrorContainer }}>
                 Waiting for event resolution...
@@ -465,7 +465,7 @@ const HostDashboardScreen: React.FC = () => {
                   <View key={`host-${player.name}-${index}`}>
                     <List.Item
                       title={player.name}
-                      description={`Score: ${player.score || 0}${player.current_bet ? ` | Current bet: Answer ${player.current_bet}` : ''}`}
+                      description={`Score: ${player.score || 0}${player.current_answer ? ` | Current answer: ${player.current_answer}` : ''}`}
                       left={(props) => (
                         <View style={[styles.rankBadge, { backgroundColor: theme.colors.primary }]}>
                           <Paragraph style={{ color: theme.colors.onPrimary, fontWeight: 'bold' }}>

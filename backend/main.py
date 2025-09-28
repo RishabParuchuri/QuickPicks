@@ -26,7 +26,7 @@ class DateTimeEncoder(json.JSONEncoder):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Arena Sports Betting API", version="1.0.0")
+app = FastAPI(title="QuickPicks Trivia API", version="1.0.0")
 
 # CORS middleware for React Native Web
 app.add_middleware(
@@ -91,11 +91,11 @@ def generate_room_id() -> str:
     return str(uuid.uuid4())[:8]
 
 async def start_event_timer(room_id: str, event: Event):
-    """Start two-phase timer for an event: betting phase + resolution phase"""
+    """Start two-phase timer for an event: answer submission phase + resolution phase"""
     try:
-        # Phase 1: Betting window
+        # Phase 1: Answer submission window
         await asyncio.sleep(event.timer_seconds)
-        await close_betting(room_id, event.id)
+        await close_answers(room_id, event.id)
         
         # Phase 2: Resolution delay
         await asyncio.sleep(event.resolution_delay_seconds)
@@ -103,8 +103,8 @@ async def start_event_timer(room_id: str, event: Event):
     except asyncio.CancelledError:
         logger.info(f"Timer cancelled for event {event.id} in room {room_id}")
 
-async def close_betting(room_id: str, event_id: str):
-    """Close betting window and show 'waiting for resolution' state"""
+async def close_answers(room_id: str, event_id: str):
+    """Close answer submission window and show 'waiting for resolution' state"""
     if room_id not in game_states:
         return
 
@@ -114,9 +114,9 @@ async def close_betting(room_id: str, event_id: str):
     if not event or event.id != event_id:
         return
 
-    # Broadcast betting closed message
+    # Broadcast answers closed message
     message = WebSocketMessage(
-        type=MessageType.BETTING_CLOSED,
+        type=MessageType.ANSWERS_CLOSED,
         data={
             "event_id": event_id,
             "event": event.model_dump(),
@@ -250,7 +250,7 @@ async def end_game(room_id: str):
 # API Routes
 @app.get("/")
 async def root():
-    return {"message": "Arena Sports Betting API", "status": "running"}
+    return {"message": "QuickPicks Trivia API", "status": "running"}
 
 @app.get("/games", response_model=AvailableGamesResponse)
 async def get_available_games():
@@ -364,12 +364,12 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             message_data = json.loads(data)
             message_type = message_data.get("type")
             
-            if message_type == MessageType.PLACE_BET:
+            if message_type == MessageType.SUBMIT_ANSWER:
                 answer_id = message_data.get("data", {}).get("answer_id")
                 if answer_id and game_state.room.current_event:
-                    # Check if betting window is still open (event is active)
+                    # Check if answer submission window is still open (event is active)
                     if game_state.room.current_event.status == EventStatus.ACTIVE:
-                        # Check if betting deadline has passed
+                        # Check if answer submission deadline has passed
                         current_time = datetime.now()
                         if (game_state.room.current_event.expires_at and 
                             current_time <= game_state.room.current_event.expires_at):
@@ -392,11 +392,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                                 
                                 # Send personal confirmation to the player who placed the bet
                                 bet_confirmation = WebSocketMessage(
-                                    type=MessageType.BET_PLACED,
+                                    type=MessageType.ANSWER_SUBMITTED,
                                     data={
                                         "answer_id": answer_id, 
                                         "wagered_amount": wager_amount,
-                                        "message": f"Bet placed! Wagered {wager_amount} points"
+                                        "message": f"Answer submitted! Risked {wager_amount} points"
                                     }
                                 )
                                 await manager.send_personal_message(bet_confirmation.model_dump(), websocket)
@@ -407,7 +407,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                                     data={
                                         "room": game_state.room.model_dump(),
                                         "leaderboard": game_state.get_leaderboard(),
-                                        "message": f"{player_name} placed a bet"
+                                        "message": f"{player_name} submitted an answer"
                                     }
                                 )
                                 await manager.broadcast_to_room(room_update.model_dump(), room_id)
@@ -415,21 +415,21 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                                 # Not enough points to wager
                                 error_message = WebSocketMessage(
                                     type=MessageType.ERROR,
-                                    data={"message": f"Not enough points to wager {wager_amount} points"}
+                                    data={"message": f"Not enough points to risk {wager_amount} points"}
                                 )
                                 await manager.send_personal_message(error_message.model_dump(), websocket)
                         else:
                             # Betting window closed
                             error_message = WebSocketMessage(
                                 type=MessageType.ERROR,
-                                data={"message": "Betting window has closed"}
+                                data={"message": "Answer submission window has closed"}
                             )
                             await manager.send_personal_message(error_message.model_dump(), websocket)
                     else:
                         # Event not active (completed or pending)
                         error_message = WebSocketMessage(
                             type=MessageType.ERROR,
-                            data={"message": "No active betting event"}
+                            data={"message": "No active question event"}
                         )
                         await manager.send_personal_message(error_message.model_dump(), websocket)
             

@@ -42,7 +42,7 @@ const HomeScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         <Title style={[styles.title, { color: theme.colors.onBackground }]}>
-          Arena Sports Betting
+          QuickPicks Trivia
         </Title>
         
         <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
@@ -113,7 +113,7 @@ const HomeScreen: React.FC = () => {
         </Card>
         
         <Paragraph style={[styles.footer, { color: theme.colors.outline }]}>
-          Real-time sports betting during live games
+          Fast-paced trivia with strategic point wagering
         </Paragraph>
       </View>
     </View>

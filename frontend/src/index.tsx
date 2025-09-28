@@ -2,9 +2,9 @@ import { AppRegistry } from 'react-native';
 import App from './App';
 
 // Register the app
-AppRegistry.registerComponent('arena', () => App);
+AppRegistry.registerComponent('QuickPicks', () => App);
 
 // Run the app
-AppRegistry.runApplication('arena', {
+AppRegistry.runApplication('QuickPicks', {
   rootTag: document.getElementById('root'),
 });

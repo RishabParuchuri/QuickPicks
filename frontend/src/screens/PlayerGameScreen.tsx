@@ -148,7 +148,7 @@ const PlayerGameScreen: React.FC = () => {
                   },
                   leaderboard: message.data.leaderboard || [],
                   // Clear previous event resolution status when new event starts
-                  bettingStatus: undefined,
+                  answerStatus: undefined,
                   lastEventResult: undefined
                 };
               }
@@ -161,7 +161,7 @@ const PlayerGameScreen: React.FC = () => {
                 },
                 leaderboard: message.data.leaderboard || [],
                 // Clear previous event resolution status when new event starts
-                bettingStatus: undefined,
+                answerStatus: undefined,
                 lastEventResult: undefined
               };
             });
@@ -170,14 +170,14 @@ const PlayerGameScreen: React.FC = () => {
             setTimeRemaining(message.data.event?.timer_seconds || 0);
           }
           break;
-        case 'betting_closed':
-          console.log('Betting closed - waiting for resolution');
+        case 'answers_closed':
+          console.log('Answer period closed - waiting for resolution');
           if (message.data && typeof message.data === 'object') {
             setTimeRemaining(0); // Stop the timer
             setRoomInfo((prev: any) => ({
               ...prev,
               leaderboard: message.data.leaderboard || prev?.leaderboard || [],
-              bettingStatus: 'closed',
+              answerStatus: 'closed',
               resolutionTimeRemaining: message.data.resolution_in_seconds || 0
             }));
           }
@@ -217,7 +217,7 @@ const PlayerGameScreen: React.FC = () => {
                   current_event: null
                 },
                 leaderboard: message.data.leaderboard || [],
-                bettingStatus: 'resolved',
+                answerStatus: 'resolved',
                 lastEventResult: {
                   correct_answer_id: message.data.correct_answer_id,
                   correct_answer_text: message.data.correct_answer_text,
@@ -266,10 +266,10 @@ const PlayerGameScreen: React.FC = () => {
             });
           }
           break;
-        case 'bet_placed':
-          console.log('Bet placed successfully:', message.data);
-          // Bet confirmation received - player's answer is now locked in
-          // The hasSubmitted state was already set to true when sending the bet
+        case 'answer_submitted':
+          console.log('Answer submitted successfully:', message.data);
+          // Answer confirmation received - player's answer is now locked in
+          // The hasSubmitted state was already set to true when sending the answer
           break;
         case 'error':
           console.log('WebSocket error:', message.data?.message);
@@ -293,7 +293,7 @@ const PlayerGameScreen: React.FC = () => {
     if (!ws || !selectedAnswer || hasSubmitted) return;
 
     ws.send(JSON.stringify({
-      type: 'place_bet',
+      type: 'submit_answer',
       data: { answer_id: selectedAnswer }
     }));
 
@@ -399,17 +399,17 @@ const PlayerGameScreen: React.FC = () => {
           </Card>
         )}
 
-        {roomInfo?.bettingStatus === 'closed' && (
+        {roomInfo?.answerStatus === 'closed' && (
           <Card style={[styles.statusCard, { backgroundColor: theme.colors.errorContainer }]}>
             <Card.Content>
               <Paragraph style={{ color: theme.colors.onErrorContainer, textAlign: 'center' }}>
-                ⏳ Betting closed! Waiting for results...
+                ⏳ Time's up! Waiting for results...
               </Paragraph>
             </Card.Content>
           </Card>
         )}
 
-        {roomInfo?.bettingStatus === 'resolved' && roomInfo?.lastEventResult && (
+        {roomInfo?.answerStatus === 'resolved' && roomInfo?.lastEventResult && (
           <Card style={[styles.statusCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
             <Card.Content>
               <Title style={{ color: theme.colors.onTertiaryContainer, textAlign: 'center', fontSize: 16 }}>
@@ -440,8 +440,8 @@ const PlayerGameScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* Question and Answer Choices - Takes up most of the screen, hide when betting is closed */}
-        {roomInfo?.room?.current_event && roomInfo?.bettingStatus !== 'closed' && (
+        {/* Question and Answer Choices - Takes up most of the screen, hide when answers are closed */}
+        {roomInfo?.room?.current_event && roomInfo?.answerStatus !== 'closed' && (
           <View style={styles.questionContainer}>
             {/* Question Header */}
             <View style={[styles.questionHeader, { backgroundColor: theme.colors.surface }]}>
@@ -593,9 +593,9 @@ const PlayerGameScreen: React.FC = () => {
                           </Paragraph>
                         </View>
                       )}
-                      right={() => player.current_bet ? (
+                      right={() => player.current_answer ? (
                         <Chip mode="outlined" compact>
-                          Bet: {player.current_bet}
+                          Answer: {player.current_answer}
                         </Chip>
                       ) : null}
                       titleStyle={{ 

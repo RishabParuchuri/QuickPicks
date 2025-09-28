@@ -42,7 +42,7 @@ class Event(BaseModel):
     probability: float = Field(ge=0.0, le=1.0, description="Probability of the correct answer (0-1)")
     points_reward: int = Field(gt=0, description="Points awarded for correct answer")
     timer_seconds: int = Field(gt=0, description="Time limit for answering in seconds")
-    resolution_delay_seconds: int = Field(gt=0, description="Delay between betting close and answer resolution in seconds")
+    resolution_delay_seconds: int = Field(gt=0, description="Delay between answer submission close and result resolution in seconds")
     status: EventStatus = EventStatus.PENDING
     created_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
@@ -143,17 +143,17 @@ class GameState(BaseModel):
 class MessageType(str, Enum):
     # Client to Server
     JOIN_ROOM = "join_room"
-    PLACE_BET = "place_bet"
+    SUBMIT_ANSWER = "submit_answer"
     START_GAME = "start_game"
     
     # Server to Client
     ROOM_UPDATE = "room_update"
     NEW_EVENT = "new_event"
-    BETTING_CLOSED = "betting_closed"
+    ANSWERS_CLOSED = "answers_closed"
     EVENT_RESOLVED = "event_resolved"
     EVENT_RESULTS = "event_results"  # Kept for backward compatibility
     GAME_ENDED = "game_ended"
-    BET_PLACED = "bet_placed"
+    ANSWER_SUBMITTED = "answer_submitted"
     ERROR = "error"
 
 

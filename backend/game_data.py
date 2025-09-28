@@ -1,5 +1,5 @@
 """
-Hardcoded game data for the Arena sports betting application.
+Hardcoded game data for the QuickPicks trivia application.
 This file contains all the predefined events and games used in the hackathon demo.
 """
 

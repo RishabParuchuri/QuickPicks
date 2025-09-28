@@ -35,7 +35,7 @@ interface RoomInfo {
   leaderboard: Array<{
     name: string;
     score: number;
-    current_bet?: number;
+    current_answer?: number;
   }>;
 }
 
