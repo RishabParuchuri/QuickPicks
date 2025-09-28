@@ -413,6 +413,15 @@ const HostDashboardScreen: React.FC = () => {
             {(() => {
               try {
                 const playerCount = Object.keys(roomInfo?.room?.players || {}).length;
+                const leaderboardCount = roomInfo?.leaderboard?.length || 0;
+                
+                // Debug logging
+                console.log('Host Dashboard Debug:', {
+                  roomPlayers: Object.keys(roomInfo?.room?.players || {}),
+                  leaderboardSize: leaderboardCount,
+                  roomPlayerCount: playerCount,
+                  hasLeaderboard: !!roomInfo?.leaderboard
+                });
                 
                 if (playerCount === 0) {
                   return (
@@ -431,11 +440,17 @@ const HostDashboardScreen: React.FC = () => {
                 }
 
                 const validPlayers = roomInfo.leaderboard.filter((player: any) => {
-                  return player && 
+                  const isValid = player && 
                          typeof player === 'object' && 
                          player.name && 
                          typeof player.name === 'string' &&
                          player.name.trim() !== '';
+                  
+                  if (!isValid) {
+                    console.warn('Invalid player found in leaderboard:', player);
+                  }
+                  
+                  return isValid;
                 });
 
                 if (validPlayers.length === 0) {

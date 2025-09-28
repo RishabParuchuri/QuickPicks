@@ -317,11 +317,22 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
         
         # Add player to room (but not if they are the host)
         game_state = game_states[room_id]
-        if player_name != game_state.room.host_name and player_name not in game_state.room.players:
+        is_host = player_name == game_state.room.host_name
+        
+        if not is_host and player_name not in game_state.room.players:
             game_state.room.players[player_name] = Player(name=player_name)
+            logger.info(f"Added new player {player_name} to room {room_id}")
+        elif not is_host:
+            logger.info(f"Player {player_name} already exists in room {room_id}")
+        else:
+            logger.info(f"Host {player_name} connecting to room {room_id}")
         
         # Connect player
         await manager.connect(websocket, room_id, player_name)
+        
+        # Validate that we have at least one non-host player for game to start
+        non_host_players = [name for name in game_state.room.players.keys() if name != game_state.room.host_name]
+        logger.info(f"Room {room_id} now has {len(non_host_players)} non-host players: {non_host_players}")
         
         # Send room update to the joining player
         room_update = WebSocketMessage(
@@ -389,6 +400,17 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                                     }
                                 )
                                 await manager.send_personal_message(bet_confirmation.model_dump(), websocket)
+                                
+                                # Broadcast updated room state so host can see player activity
+                                room_update = WebSocketMessage(
+                                    type=MessageType.ROOM_UPDATE,
+                                    data={
+                                        "room": game_state.room.model_dump(),
+                                        "leaderboard": game_state.get_leaderboard(),
+                                        "message": f"{player_name} placed a bet"
+                                    }
+                                )
+                                await manager.broadcast_to_room(room_update.model_dump(), room_id)
                             else:
                                 # Not enough points to wager
                                 error_message = WebSocketMessage(
@@ -413,8 +435,18 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
             
             elif message_type == MessageType.START_GAME and player_name == game_state.room.host_name:
                 if game_state.room.game_status == GameStatus.WAITING:
-                    game_state.room.game_status = GameStatus.IN_PROGRESS
-                    await schedule_next_event(room_id)
+                    # Check if there are any non-host players
+                    non_host_players = [name for name in game_state.room.players.keys() if name != game_state.room.host_name]
+                    if len(non_host_players) == 0:
+                        error_message = WebSocketMessage(
+                            type=MessageType.ERROR,
+                            data={"message": "Cannot start game: No players have joined yet"}
+                        )
+                        await manager.send_personal_message(error_message.model_dump(), websocket)
+                    else:
+                        logger.info(f"Starting game in room {room_id} with {len(non_host_players)} players")
+                        game_state.room.game_status = GameStatus.IN_PROGRESS
+                        await schedule_next_event(room_id)
             
     except WebSocketDisconnect:
         if player_name and room_id:
