@@ -1,5 +1,5 @@
-const API_BASE_URL = 'http://localhost:8000';
-const WS_BASE_URL = 'ws://localhost:8000';
+const API_BASE_URL = 'https://nonforfeitable-repellingly-grady.ngrok-free.dev';
+const WS_BASE_URL = 'ws://nonforfeitable-repellingly-grady.ngrok-free.dev';
 
 interface CreateRoomRequest {
   name: string;
@@ -41,7 +41,11 @@ interface RoomInfo {
 
 export class ApiService {
   static async getAvailableGames(): Promise<AvailableGamesResponse> {
-    const response = await fetch(`${API_BASE_URL}/games`);
+    const response = await fetch(`${API_BASE_URL}/games`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch games');
     }
@@ -53,6 +57,7 @@ export class ApiService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify(request),
     });
@@ -65,7 +70,11 @@ export class ApiService {
   }
 
   static async getRoomInfo(roomId: string): Promise<RoomInfo> {
-    const response = await fetch(`${API_BASE_URL}/room/${roomId}`);
+    const response = await fetch(`${API_BASE_URL}/room/${roomId}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     if (!response.ok) {
       throw new Error('Failed to fetch room info');
     }
@@ -75,6 +84,9 @@ export class ApiService {
   static async startDemoGame(roomId: string): Promise<{ message: string; room_id: string }> {
     const response = await fetch(`${API_BASE_URL}/admin/start-demo/${roomId}`, {
       method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
     
     if (!response.ok) {
