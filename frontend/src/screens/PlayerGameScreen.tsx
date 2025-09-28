@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { 
   Title, 
   Button, 
@@ -20,8 +20,8 @@ const PlayerGameScreen: React.FC = () => {
   const navigate = useNavigate();
   const { roomId, playerName } = useParams<{ roomId: string; playerName: string }>();
   const theme = useTheme();
-  const { width: windowWidth } = useWindowDimensions();
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [originalRoomData, setOriginalRoomData] = useState<any>(null); // Store original room data permanently
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,15 @@ const PlayerGameScreen: React.FC = () => {
     try {
       const info = await ApiService.getRoomInfo(roomId);
       setRoomInfo(info);
+      // Store the original room data permanently so it never gets lost
+      if (info?.room && !originalRoomData) {
+        setOriginalRoomData({
+          name: info.room.name,
+          game_name: info.room.game_name,
+          id: info.room.id
+        });
+        console.log('Stored original room data:', info.room.name, info.room.game_name);
+      }
     } catch (err) {
       setError('Failed to load room information');
     } finally {
@@ -122,19 +131,38 @@ const PlayerGameScreen: React.FC = () => {
           console.log('New event - leaderboard:', message.data?.leaderboard);
           if (message.data && typeof message.data === 'object') {
             setRoomInfo((prev: any) => {
+              // Always ensure we have the original room data
+              const roomData = prev?.room || {};
+              if (originalRoomData) {
+                roomData.name = originalRoomData.name;
+                roomData.game_name = originalRoomData.game_name;
+                roomData.id = originalRoomData.id;
+              }
+              
               if (!prev || typeof prev !== 'object') {
+                console.warn('No previous room info available for new_event');
                 return {
-                  room: { current_event: message.data.event },
-                  leaderboard: message.data.leaderboard || []
+                  room: { 
+                    ...roomData,
+                    current_event: message.data.event 
+                  },
+                  leaderboard: message.data.leaderboard || [],
+                  // Clear previous event resolution status when new event starts
+                  bettingStatus: undefined,
+                  lastEventResult: undefined
                 };
               }
               return {
                 ...prev,
                 room: {
+                  ...roomData,
                   ...prev.room,
                   current_event: message.data.event
                 },
-                leaderboard: message.data.leaderboard || []
+                leaderboard: message.data.leaderboard || [],
+                // Clear previous event resolution status when new event starts
+                bettingStatus: undefined,
+                lastEventResult: undefined
               };
             });
             setSelectedAnswer(null);
@@ -158,9 +186,21 @@ const PlayerGameScreen: React.FC = () => {
           console.log('Event resolved - results:', message.data);
           if (message.data && typeof message.data === 'object') {
             setRoomInfo((prev: any) => {
+              // Always ensure we have the original room data
+              const roomData = prev?.room || {};
+              if (originalRoomData) {
+                roomData.name = originalRoomData.name;
+                roomData.game_name = originalRoomData.game_name;
+                roomData.id = originalRoomData.id;
+              }
+              
               if (!prev || typeof prev !== 'object') {
+                console.warn('No previous room info available for event_resolved');
                 return {
-                  room: { current_event: null },
+                  room: { 
+                    ...roomData,
+                    current_event: null 
+                  },
                   leaderboard: message.data.leaderboard || [],
                   lastEventResult: {
                     correct_answer_id: message.data.correct_answer_id,
@@ -172,6 +212,7 @@ const PlayerGameScreen: React.FC = () => {
               return {
                 ...prev,
                 room: {
+                  ...roomData,
                   ...prev.room,
                   current_event: null
                 },
@@ -314,34 +355,41 @@ const PlayerGameScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background, width: windowWidth }]}>
-      <View style={[styles.content, { width: windowWidth }]}>
-        {/* Room Header - 20% of screen */}
-        <Card style={[styles.roomCard, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <View style={styles.roomHeader}>
-              <View>
-                <Title style={{ color: theme.colors.onSurface, fontSize: 18 }}>
-                  {roomInfo?.room?.name || 'Loading...'}
-                </Title>
-                <Paragraph style={{ color: theme.colors.outline }}>
-                  {roomInfo?.room?.game_name || ''}
-                </Paragraph>
-              </View>
-              <View style={styles.playerStats}>
-                <Paragraph style={{ color: theme.colors.onSurface, fontSize: 16, fontWeight: 'bold' }}>
-                  #{getPlayerRank() || '-'} | {getPlayerScore()} pts
-                </Paragraph>
-                <Paragraph style={{ color: theme.colors.outline, fontSize: 12 }}>
-                  {decodedPlayerName}
-                </Paragraph>
-              </View>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Header Navbar */}
+      <View style={[styles.headerNavbar, { backgroundColor: theme.colors.surface }]}>
+        <View style={styles.navbarContent}>
+          <View style={styles.gameInfo}>
+            <Title style={[styles.gameTitle, { color: theme.colors.onSurface }]}>
+              {originalRoomData?.name || roomInfo?.room?.name || 'Loading...'}
+            </Title>
+            <Paragraph style={[styles.gameSubtitle, { color: theme.colors.outline }]}>
+              {originalRoomData?.game_name || roomInfo?.room?.game_name || ''}
+            </Paragraph>
+          </View>
+          <View style={styles.playerInfo}>
+            <View style={[styles.rankBadge, { backgroundColor: theme.colors.primary }]}>
+              <Paragraph style={[styles.rankText, { color: theme.colors.onPrimary }]}>
+                #{getPlayerRank() || '-'}
+              </Paragraph>
             </View>
-          </Card.Content>
-        </Card>
+            <View style={styles.scoreSection}>
+              <Paragraph style={[styles.scoreText, { color: theme.colors.onSurface }]}>
+                {getPlayerScore()} pts
+              </Paragraph>
+              <Paragraph style={[styles.playerName, { color: theme.colors.outline }]}>
+                {decodedPlayerName}
+              </Paragraph>
+            </View>
+          </View>
+        </View>
+      </View>
 
-        {/* Game Status */}
-        {roomInfo?.room?.game_status === 'waiting' && (
+      {/* Main Content Area */}
+      <View style={styles.mainContent}>
+
+        {/* Game Status - Only show waiting message when game hasn't started AND no active question */}
+        {roomInfo?.room?.game_status === 'waiting' && !roomInfo?.room?.current_event && (
           <Card style={[styles.statusCard, { backgroundColor: theme.colors.secondaryContainer }]}>
             <Card.Content>
               <Paragraph style={{ color: theme.colors.onSecondaryContainer, textAlign: 'center' }}>
@@ -357,11 +405,6 @@ const PlayerGameScreen: React.FC = () => {
               <Paragraph style={{ color: theme.colors.onErrorContainer, textAlign: 'center' }}>
                 ⏳ Betting closed! Waiting for results...
               </Paragraph>
-              {roomInfo?.resolutionTimeRemaining > 0 && (
-                <Paragraph style={{ color: theme.colors.onErrorContainer, textAlign: 'center', fontSize: 12 }}>
-                  Resolution in {roomInfo.resolutionTimeRemaining}s
-                </Paragraph>
-              )}
             </Card.Content>
           </Card>
         )}
@@ -397,62 +440,72 @@ const PlayerGameScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* Current Question - 20% of screen */}
-        {roomInfo?.room?.current_event && (
-          <Card style={[styles.questionCard, { backgroundColor: theme.colors.surface }]}>
-            <Card.Content>
-              <View style={styles.questionHeader}>
-                <Title style={{ color: theme.colors.onSurface, fontSize: 16, flex: 1 }}>
+        {/* Question and Answer Choices - Takes up most of the screen, hide when betting is closed */}
+        {roomInfo?.room?.current_event && roomInfo?.bettingStatus !== 'closed' && (
+          <View style={styles.questionContainer}>
+            {/* Question Header */}
+            <View style={[styles.questionHeader, { backgroundColor: theme.colors.surface }]}>
+              <View style={styles.questionContent}>
+                <Title style={[styles.questionText, { color: theme.colors.onSurface }]}>
                   {roomInfo?.room?.current_event?.question || ''}
                 </Title>
-                <View style={styles.timerContainer}>
-                  <Paragraph style={{ color: theme.colors.primary, fontSize: 18, fontWeight: 'bold' }}>
-                    {timeRemaining}s
-                  </Paragraph>
-                  <ProgressBar 
-                    progress={roomInfo?.room?.current_event?.timer_seconds ? timeRemaining / roomInfo.room.current_event.timer_seconds : 0}
-                    color={theme.colors.primary}
-                    style={{ width: 40, height: 4 }}
-                  />
+                <View style={styles.questionMeta}>
+                  <Chip 
+                    mode="flat" 
+                    style={[styles.pointsChip, { backgroundColor: `${theme.colors.primary}20` }]}
+                    textStyle={{ color: theme.colors.primary, fontWeight: 'bold' }}
+                  >
+                    {roomInfo?.room?.current_event?.points_reward || 0} pts
+                  </Chip>
                 </View>
               </View>
-              
-              <Paragraph style={{ color: theme.colors.outline, fontSize: 12, marginTop: 5 }}>
-                Wager: {roomInfo?.room?.current_event?.points_reward || 0} points
-              </Paragraph>
-            </Card.Content>
-          </Card>
-        )}
+              <View style={styles.timerSection}>
+                <Title style={[styles.timerText, { color: theme.colors.primary }]}>
+                  {timeRemaining}
+                </Title>
+                <Paragraph style={[styles.timerLabel, { color: theme.colors.outline }]}>
+                  seconds
+                </Paragraph>
+                <ProgressBar 
+                  progress={roomInfo?.room?.current_event?.timer_seconds ? timeRemaining / roomInfo.room.current_event.timer_seconds : 0}
+                  color={theme.colors.primary}
+                  style={styles.progressBar}
+                />
+              </View>
+            </View>
 
-        {/* Answer Choices - 60% of screen */}
-        {roomInfo?.room?.current_event && (
-          <View style={styles.answersContainer}>
-            <View style={styles.answersGrid}>
-              {roomInfo?.room?.current_event?.answer_choices?.map((choice: any) => (
-                <Card
-                  key={choice.id}
-                  style={[
-                    styles.answerCard,
-                    { 
-                      backgroundColor: selectedAnswer === choice.id 
-                        ? theme.colors.primaryContainer 
-                        : theme.colors.surface 
-                    }
-                  ]}
-                >
-                  <Card.Content>
-                    <Button
-                      mode={selectedAnswer === choice.id ? "contained" : "outlined"}
-                      onPress={() => handleAnswerSelect(choice.id)}
-                      style={styles.answerButton}
-                      disabled={hasSubmitted || timeRemaining === 0}
-                      buttonColor={selectedAnswer === choice.id ? theme.colors.primary : 'transparent'}
-                    >
-                      {choice?.text || 'Answer'}
-                    </Button>
-                  </Card.Content>
-                </Card>
-              )) || []}
+            {/* Answer Choices - Large buttons taking most of the screen */}
+            <View style={styles.choicesContainer}>
+              <View style={styles.choicesGrid}>
+                {roomInfo?.room?.current_event?.answer_choices?.map((choice: any) => (
+                  <Button
+                    key={choice.id}
+                    mode={selectedAnswer === choice.id ? "contained" : "outlined"}
+                    onPress={() => handleAnswerSelect(choice.id)}
+                    style={[
+                      styles.choiceButton,
+                      {
+                        backgroundColor: selectedAnswer === choice.id 
+                          ? theme.colors.primary 
+                          : 'transparent',
+                        borderColor: theme.colors.primary,
+                        borderWidth: 2,
+                      }
+                    ]}
+                    contentStyle={styles.choiceButtonContent}
+                    labelStyle={[
+                      styles.choiceButtonLabel,
+                      {
+                        color: selectedAnswer === choice.id 
+                          ? theme.colors.onPrimary 
+                          : theme.colors.onSurface,
+                      }
+                    ]}
+                    disabled={hasSubmitted || timeRemaining === 0}
+                  >
+                    {choice?.text || 'Answer'}
+                  </Button>
+                )) || []}
             </View>
             
             {selectedAnswer && !hasSubmitted && timeRemaining > 0 && (
@@ -466,23 +519,23 @@ const PlayerGameScreen: React.FC = () => {
             )}
             
             {hasSubmitted && (
-              <Card style={[styles.submittedCard, { backgroundColor: theme.colors.tertiaryContainer }]}>
-                <Card.Content>
-                  <Paragraph style={{ color: theme.colors.onTertiaryContainer, textAlign: 'center' }}>
-                    ✓ Answer submitted! Waiting for results...
-                  </Paragraph>
-                </Card.Content>
-              </Card>
+              <View style={[styles.submittedIndicator, { backgroundColor: theme.colors.tertiaryContainer }]}>
+                <Paragraph style={[styles.submittedText, { color: theme.colors.onTertiaryContainer }]}>
+                  ✓ Answer submitted! Waiting for results...
+                </Paragraph>
+              </View>
             )}
+          </View>
           </View>
         )}
 
-        {/* Leaderboard */}
-        <Card style={[styles.leaderboardCard, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <Title style={{ color: theme.colors.onSurface, fontSize: 16, marginBottom: 10 }}>
-              Leaderboard
-            </Title>
+        {/* Leaderboard - Only show when no active question */}
+        {!roomInfo?.room?.current_event && (
+          <Card style={[styles.leaderboardCard, { backgroundColor: theme.colors.surface }]}>
+            <Card.Content>
+              <Title style={{ color: theme.colors.onSurface, fontSize: 16, marginBottom: 10 }}>
+                Leaderboard
+              </Title>
             
             {(() => {
               try {
@@ -517,7 +570,7 @@ const PlayerGameScreen: React.FC = () => {
                       description={`${player.score || 0} points`}
                       left={() => (
                         <View style={[
-                          styles.rankBadge,
+                          styles.leaderboardRankBadge,
                           {
                             backgroundColor: player.name === decodedPlayerName 
                               ? theme.colors.primary 
@@ -562,11 +615,17 @@ const PlayerGameScreen: React.FC = () => {
             })()}
           </Card.Content>
         </Card>
+        )}
 
+      </View>
+
+      {/* Footer */}
+      <View style={[styles.footer, { backgroundColor: theme.colors.surface }]}>
         <Button
           mode="outlined"
           onPress={handleBack}
-          style={styles.backButton}
+          style={styles.leaveButton}
+          textColor={theme.colors.outline}
         >
           Leave Room
         </Button>
@@ -579,7 +638,7 @@ const PlayerGameScreen: React.FC = () => {
       >
         {error}
       </Snackbar>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -592,6 +651,164 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  // Header Navbar Styles
+  headerNavbar: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  navbarContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  gameInfo: {
+    flex: 1,
+  },
+  gameTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  gameSubtitle: {
+    fontSize: 14,
+  },
+  playerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rankBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rankText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  scoreSection: {
+    alignItems: 'flex-end',
+  },
+  scoreText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  playerName: {
+    fontSize: 12,
+  },
+  // Main Content Styles
+  mainContent: {
+    flex: 1,
+    padding: 16,
+  },
+  // Question Container Styles
+  questionContainer: {
+    flex: 1,
+  },
+  questionHeader: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  questionContent: {
+    flex: 1,
+    marginRight: 20,
+  },
+  questionText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  questionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pointsChip: {
+    borderRadius: 16,
+  },
+  timerSection: {
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  timerText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 36,
+  },
+  timerLabel: {
+    fontSize: 12,
+    marginTop: -4,
+  },
+  progressBar: {
+    width: 60,
+    height: 4,
+    marginTop: 8,
+    borderRadius: 2,
+  },
+  // Choice Buttons Styles
+  choicesContainer: {
+    flex: 1,
+    paddingVertical: 20,
+  },
+  choicesGrid: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+  },
+  choiceButton: {
+    flex: 1,
+    minWidth: '45%', // Ensures 2 buttons per row with gap
+    minHeight: 100,
+    borderRadius: 12,
+    justifyContent: 'center',
+  },
+  choiceButtonContent: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    minHeight: 100,
+    justifyContent: 'center',
+  },
+  choiceButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  submitButton: {
+    marginTop: 20,
+    borderRadius: 12,
+  },
+  submittedIndicator: {
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  submittedText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Footer Styles
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  leaveButton: {
+    borderRadius: 8,
+  },
+  // Legacy styles for other components
   content: {
     padding: 15,
   },
@@ -614,7 +831,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     minHeight: '15%',
   },
-  questionHeader: {
+  legacyQuestionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -641,7 +858,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
     justifyContent: 'center',
   },
-  submitButton: {
+  legacySubmitButton: {
     marginVertical: 15,
     paddingVertical: 10,
   },
@@ -651,7 +868,7 @@ const styles = StyleSheet.create({
   leaderboardCard: {
     marginBottom: 15,
   },
-  rankBadge: {
+  leaderboardRankBadge: {
     width: 30,
     height: 30,
     borderRadius: 15,

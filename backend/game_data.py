@@ -60,7 +60,7 @@ DEMO_EVENTS = [
         probability=0.45,  # Medium probability
         points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=10,
-        resolution_delay_seconds=60
+        resolution_delay_seconds=6
     ),
     Event(
         id="event_2", 
@@ -74,7 +74,7 @@ DEMO_EVENTS = [
         probability=0.6,  # Higher probability
         points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=10,
-        resolution_delay_seconds=37
+        resolution_delay_seconds=7
     )
 ]
 
