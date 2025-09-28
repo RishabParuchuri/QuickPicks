@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { 
   Title, 
   Button, 
@@ -41,6 +41,11 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
+        <Image 
+          source={{ uri: '/QuickPicks-removebg-preview.png' }}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Title style={[styles.title, { color: theme.colors.onBackground }]}>
           QuickPicks Trivia
         </Title>
@@ -130,6 +135,12 @@ const styles = StyleSheet.create({
   content: {
     width: '100%',
     maxWidth: 400,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    alignSelf: 'center',
+    marginBottom: 0,
   },
   title: {
     textAlign: 'center',

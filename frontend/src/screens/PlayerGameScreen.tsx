@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Modal } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Modal, Image } from 'react-native';
 import { 
   Title, 
   Button, 
@@ -358,13 +358,20 @@ const PlayerGameScreen: React.FC = () => {
       {/* Header Navbar */}
       <View style={[styles.headerNavbar, { backgroundColor: theme.colors.surface }]}>
         <View style={styles.navbarContent}>
-          <View style={styles.gameInfo}>
-            <Title style={[styles.gameTitle, { color: theme.colors.onSurface }]}>
-              {originalRoomData?.name || roomInfo?.room?.name || 'Loading...'}
-            </Title>
-            <Paragraph style={[styles.gameSubtitle, { color: theme.colors.outline }]}>
-              {originalRoomData?.game_name || roomInfo?.room?.game_name || ''}
-            </Paragraph>
+          <View style={styles.leftSection}>
+            <Image 
+              source={{ uri: '/QuickPicks-removebg-preview.png' }}
+              style={styles.navbarLogo}
+              resizeMode="contain"
+            />
+            <View style={styles.gameInfo}>
+              <Title style={[styles.gameTitle, { color: theme.colors.onSurface }]}>
+                {originalRoomData?.name || roomInfo?.room?.name || 'Loading...'}
+              </Title>
+              <Paragraph style={[styles.gameSubtitle, { color: theme.colors.outline }]}>
+                {originalRoomData?.game_name || roomInfo?.room?.game_name || ''}
+              </Paragraph>
+            </View>
           </View>
           <View style={styles.playerInfo}>
             <View style={[styles.rankBadge, { backgroundColor: theme.colors.primary }]}>
@@ -706,6 +713,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  navbarLogo: {
+    width: 60,
+    height: 60,
+    marginRight: 12,
   },
   gameInfo: {
     flex: 1,
