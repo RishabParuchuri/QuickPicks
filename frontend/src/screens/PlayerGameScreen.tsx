@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { 
   Title, 
   Button, 
@@ -478,9 +478,8 @@ const PlayerGameScreen: React.FC = () => {
             <View style={styles.choicesContainer}>
               <View style={styles.choicesGrid}>
                 {roomInfo?.room?.current_event?.answer_choices?.map((choice: any) => (
-                  <Button
+                  <TouchableOpacity
                     key={choice.id}
-                    mode={selectedAnswer === choice.id ? "contained" : "outlined"}
                     onPress={() => handleAnswerSelect(choice.id)}
                     style={[
                       styles.choiceButton,
@@ -492,19 +491,25 @@ const PlayerGameScreen: React.FC = () => {
                         borderWidth: 2,
                       }
                     ]}
-                    contentStyle={styles.choiceButtonContent}
-                    labelStyle={[
-                      styles.choiceButtonLabel,
-                      {
-                        color: selectedAnswer === choice.id 
-                          ? theme.colors.onPrimary 
-                          : theme.colors.onSurface,
-                      }
-                    ]}
                     disabled={hasSubmitted || timeRemaining === 0}
+                    activeOpacity={0.7}
                   >
-                    {choice?.text || 'Answer'}
-                  </Button>
+                    <View style={styles.choiceButtonContent}>
+                      <Text
+                        style={[
+                          styles.choiceButtonLabel,
+                          {
+                            color: selectedAnswer === choice.id 
+                              ? theme.colors.onPrimary 
+                              : theme.colors.onSurface,
+                          }
+                        ]}
+                        numberOfLines={0}
+                      >
+                        {choice?.text || 'Answer'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 )) || []}
             </View>
             
@@ -764,25 +769,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 16,
     justifyContent: 'space-between',
+    alignItems: 'stretch',
   },
   choiceButton: {
-    flex: 1,
-    minWidth: '45%', // Ensures 2 buttons per row with gap
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: '45%', // Use flexBasis instead of minWidth
+    maxWidth: '48%', // Prevent overflow
     minHeight: 100,
     borderRadius: 12,
     justifyContent: 'center',
   },
   choiceButtonContent: {
-    paddingVertical: 24,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     minHeight: 100,
     justifyContent: 'center',
+    alignItems: 'center',
+    flex: 1,
+    width: '100%',
   },
   choiceButtonLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 22,
+    flex: 1,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   submitButton: {
     marginTop: 20,
