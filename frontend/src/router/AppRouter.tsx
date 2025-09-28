@@ -19,7 +19,7 @@ const AppRouter: React.FC = () => {
         <Route path="/join-room-by-id/:roomId" element={<JoinRoomByIdScreen />} />
         <Route path="/host-dashboard/:roomId/:hostName" element={<HostDashboardScreen />} />
         <Route path="/player-game/:roomId/:playerName" element={<PlayerGameScreen />} />
-        <Route path="/video" element={<VideoScreen />} />
+        <Route path="/video/:roomId" element={<VideoScreen />} />
         <Route path="/admin" element={<AdminScreen />} />
         {/* Redirect any unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
