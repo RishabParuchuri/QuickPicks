@@ -9,8 +9,7 @@ import {
   Chip,
   ActivityIndicator,
   Snackbar,
-  ProgressBar,
-  IconButton
+  ProgressBar
 } from 'react-native-paper';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiService } from '../services/ApiService';
@@ -542,7 +541,6 @@ const PlayerGameScreen: React.FC = () => {
             style={[styles.leaderboardButton, { borderColor: theme.colors.primary }]}
             contentStyle={styles.leaderboardButtonContent}
             labelStyle={{ color: theme.colors.primary }}
-            icon="trophy"
           >
             View Leaderboard
           </Button>
@@ -583,13 +581,14 @@ const PlayerGameScreen: React.FC = () => {
             <Title style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
               🏆 Leaderboard
             </Title>
-            <IconButton
-              icon="close"
-              size={24}
-              iconColor={theme.colors.onSurface}
+            <TouchableOpacity
               onPress={() => setLeaderboardVisible(false)}
               style={styles.closeButton}
-            />
+            >
+              <Text style={[styles.closeButtonText, { color: theme.colors.onSurface }]}>
+                ✕
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Modal Content */}
@@ -947,7 +946,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   closeButton: {
-    margin: 0,
+    padding: 8,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 40,
+    minHeight: 40,
+  },
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   modalContent: {
     flex: 1,
