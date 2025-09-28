@@ -41,9 +41,18 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
-        <Title style={[styles.title, { color: theme.colors.onBackground }]}>
-          QuickPicks Trivia
-        </Title>
+        <img 
+          src="/QuickPickLogo.png" 
+          alt="QuickPicks Trivia"
+          style={{
+            display: 'block',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: 30,
+            maxWidth: '200px',
+            height: 'auto',
+          }}
+        />
         
         <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
@@ -131,12 +140,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 30,
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
+
   card: {
     marginBottom: 20,
   },
