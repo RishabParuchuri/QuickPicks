@@ -1,5 +1,5 @@
 const API_BASE_URL = 'https://nonforfeitable-repellingly-grady.ngrok-free.dev';
-const WS_BASE_URL = 'ws://nonforfeitable-repellingly-grady.ngrok-free.dev';
+const WS_BASE_URL = 'wss://nonforfeitable-repellingly-grady.ngrok-free.dev';
 
 interface CreateRoomRequest {
   name: string;
