@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Modal } from 'react-native';
 import { 
   Title, 
   Button, 
   Card, 
   Paragraph,
   useTheme,
-  List,
-  Divider,
   Chip,
   ActivityIndicator,
   Snackbar,
-  ProgressBar
+  ProgressBar,
+  IconButton
 } from 'react-native-paper';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ApiService } from '../services/ApiService';
@@ -28,6 +27,7 @@ const PlayerGameScreen: React.FC = () => {
   const [error, setError] = useState('');
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [leaderboardVisible, setLeaderboardVisible] = useState(false);
   
   const decodedPlayerName = playerName ? decodeURIComponent(playerName).trim() : '';
 
@@ -534,92 +534,18 @@ const PlayerGameScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Leaderboard - Only show when no active question */}
+        {/* View Leaderboard Button - Only show when no active question */}
         {!roomInfo?.room?.current_event && (
-          <Card style={[styles.leaderboardCard, { backgroundColor: theme.colors.surface }]}>
-            <Card.Content>
-              <Title style={{ color: theme.colors.onSurface, fontSize: 16, marginBottom: 10 }}>
-                Leaderboard
-              </Title>
-            
-            {(() => {
-              try {
-                if (!roomInfo?.leaderboard || !Array.isArray(roomInfo.leaderboard)) {
-                  return (
-                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center' }}>
-                      No players yet
-                    </Paragraph>
-                  );
-                }
-
-                const validPlayers = roomInfo.leaderboard.filter((player: any) => {
-                  return player && 
-                         typeof player === 'object' && 
-                         player.name && 
-                         typeof player.name === 'string' &&
-                         player.name.trim() !== '';
-                });
-
-                if (validPlayers.length === 0) {
-                  return (
-                    <Paragraph style={{ color: theme.colors.outline, textAlign: 'center' }}>
-                      No valid players
-                    </Paragraph>
-                  );
-                }
-
-                return validPlayers.map((player: any, index: number) => (
-                  <View key={`${player.name}-${index}`}>
-                    <List.Item
-                      title={player.name}
-                      description={`${player.score || 0} points`}
-                      left={() => (
-                        <View style={[
-                          styles.leaderboardRankBadge,
-                          {
-                            backgroundColor: player.name === decodedPlayerName 
-                              ? theme.colors.primary 
-                              : theme.colors.outline
-                          }
-                        ]}>
-                          <Paragraph style={{
-                            color: player.name === decodedPlayerName 
-                              ? theme.colors.onPrimary 
-                              : theme.colors.surface,
-                            fontWeight: 'bold',
-                            fontSize: 12
-                          }}>
-                            #{index + 1}
-                          </Paragraph>
-                        </View>
-                      )}
-                      right={() => player.current_answer ? (
-                        <Chip mode="outlined" compact>
-                          Answer: {player.current_answer}
-                        </Chip>
-                      ) : null}
-                      titleStyle={{ 
-                        color: player.name === decodedPlayerName 
-                          ? theme.colors.primary 
-                          : theme.colors.onSurface,
-                        fontWeight: player.name === decodedPlayerName ? 'bold' : 'normal'
-                      }}
-                      descriptionStyle={{ color: theme.colors.outline }}
-                    />
-                    {index < validPlayers.length - 1 && <Divider />}
-                  </View>
-                ));
-              } catch (error) {
-                console.error('Error rendering leaderboard:', error, roomInfo);
-                return (
-                  <Paragraph style={{ color: theme.colors.error, textAlign: 'center' }}>
-                    Error loading leaderboard
-                  </Paragraph>
-                );
-              }
-            })()}
-          </Card.Content>
-        </Card>
+          <Button
+            mode="outlined"
+            onPress={() => setLeaderboardVisible(true)}
+            style={[styles.leaderboardButton, { borderColor: theme.colors.primary }]}
+            contentStyle={styles.leaderboardButtonContent}
+            labelStyle={{ color: theme.colors.primary }}
+            icon="trophy"
+          >
+            View Leaderboard
+          </Button>
         )}
 
       </View>
@@ -643,6 +569,120 @@ const PlayerGameScreen: React.FC = () => {
       >
         {error}
       </Snackbar>
+
+      {/* Leaderboard Modal */}
+      <Modal
+        visible={leaderboardVisible}
+        onRequestClose={() => setLeaderboardVisible(false)}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+          {/* Modal Header */}
+          <View style={[styles.modalHeader, { backgroundColor: theme.colors.surface }]}>
+            <Title style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
+              🏆 Leaderboard
+            </Title>
+            <IconButton
+              icon="close"
+              size={24}
+              iconColor={theme.colors.onSurface}
+              onPress={() => setLeaderboardVisible(false)}
+              style={styles.closeButton}
+            />
+          </View>
+
+          {/* Modal Content */}
+          <View style={styles.modalContent}>
+            {(() => {
+              try {
+                if (!roomInfo?.leaderboard || !Array.isArray(roomInfo.leaderboard)) {
+                  return (
+                    <View style={styles.emptyLeaderboard}>
+                      <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', fontSize: 16 }}>
+                        No players yet
+                      </Paragraph>
+                    </View>
+                  );
+                }
+
+                const validPlayers = roomInfo.leaderboard.filter((player: any) => {
+                  return player && 
+                         typeof player === 'object' && 
+                         player.name && 
+                         typeof player.name === 'string' &&
+                         player.name.trim() !== '';
+                });
+
+                if (validPlayers.length === 0) {
+                  return (
+                    <View style={styles.emptyLeaderboard}>
+                      <Paragraph style={{ color: theme.colors.outline, textAlign: 'center', fontSize: 16 }}>
+                        No valid players
+                      </Paragraph>
+                    </View>
+                  );
+                }
+
+                return validPlayers.map((player: any, index: number) => (
+                  <View key={`modal-${player.name}-${index}`} style={styles.leaderboardItem}>
+                    <View style={[
+                      styles.modalRankBadge,
+                      {
+                        backgroundColor: player.name === decodedPlayerName 
+                          ? theme.colors.primary 
+                          : theme.colors.outline
+                      }
+                    ]}>
+                      <Text style={{
+                        color: player.name === decodedPlayerName 
+                          ? theme.colors.onPrimary 
+                          : theme.colors.surface,
+                        fontWeight: 'bold',
+                        fontSize: 16
+                      }}>
+                        #{index + 1}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.modalPlayerInfo}>
+                      <Text style={[
+                        styles.playerNameModal,
+                        { 
+                          color: player.name === decodedPlayerName 
+                            ? theme.colors.primary 
+                            : theme.colors.onSurface,
+                          fontWeight: player.name === decodedPlayerName ? 'bold' : 'normal'
+                        }
+                      ]}>
+                        {player.name}
+                      </Text>
+                      <Text style={[styles.playerScore, { color: theme.colors.outline }]}>
+                        {player.score || 0} points
+                      </Text>
+                    </View>
+
+                    {player.current_answer && (
+                      <Chip mode="outlined" compact>
+                        Answer: {player.current_answer}
+                      </Chip>
+                    )}
+                  </View>
+                ));
+              } catch (error) {
+                console.error('Error rendering modal leaderboard:', error, roomInfo);
+                return (
+                  <View style={styles.emptyLeaderboard}>
+                    <Paragraph style={{ color: theme.colors.error, textAlign: 'center', fontSize: 16 }}>
+                      Error loading leaderboard
+                    </Paragraph>
+                  </View>
+                );
+              }
+            })()}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -879,8 +919,70 @@ const styles = StyleSheet.create({
   submittedCard: {
     marginVertical: 15,
   },
-  leaderboardCard: {
-    marginBottom: 15,
+  // Leaderboard Button Styles
+  leaderboardButton: {
+    marginVertical: 16,
+    marginHorizontal: 16,
+    borderWidth: 2,
+    borderRadius: 12,
+  },
+  leaderboardButtonContent: {
+    paddingVertical: 8,
+  },
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    margin: 0,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  emptyLeaderboard: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  leaderboardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  modalRankBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  modalPlayerInfo: {
+    flex: 1,
+  },
+  playerNameModal: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  playerScore: {
+    fontSize: 14,
   },
   leaderboardRankBadge: {
     width: 30,
