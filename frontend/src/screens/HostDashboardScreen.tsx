@@ -398,7 +398,7 @@ const HostDashboardScreen: React.FC = () => {
               
               <Paragraph style={{ color: theme.colors.outline, marginTop: 10 }}>
                 Timer: {roomInfo?.room?.current_event?.timer_seconds || 0}s | 
-                Points: {roomInfo?.room?.current_event?.points_reward || 0} |
+                Wager: {roomInfo?.room?.current_event?.points_reward || 0} points |
                 Resolution Delay: {roomInfo?.room?.current_event?.resolution_delay_seconds || 0}s
               </Paragraph>
             </Card.Content>

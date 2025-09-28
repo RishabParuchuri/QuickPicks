@@ -418,7 +418,7 @@ const PlayerGameScreen: React.FC = () => {
               </View>
               
               <Paragraph style={{ color: theme.colors.outline, fontSize: 12, marginTop: 5 }}>
-                Points: {roomInfo?.room?.current_event?.points_reward || 0}
+                Wager: {roomInfo?.room?.current_event?.points_reward || 0} points
               </Paragraph>
             </Card.Content>
           </Card>

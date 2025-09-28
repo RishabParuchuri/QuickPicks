@@ -141,16 +141,17 @@ async def resolve_event(room_id: str, event_id: str):
     # Mark event as completed
     event.status = EventStatus.COMPLETED
     
-    # Calculate results
-    results = {}
-    for player_name, bet in game_state.current_bets.items():
-        if bet.answer_id == event.correct_answer_id:
-            # Correct answer - award points
-            points_earned = game_state.calculate_points(event.probability)
-            game_state.room.players[player_name].score += points_earned
-            results[player_name] = points_earned
-        else:
-            results[player_name] = 0
+    # Calculate results using new wagering system
+    results = game_state.calculate_points_distribution(event_id, event.correct_answer_id)
+    
+    # Award points to winners and deduct wagered amounts from losers
+    for player_name, points_earned in results.items():
+        if player_name in game_state.room.players:
+            player = game_state.room.players[player_name]
+            # Add winnings to player's score
+            player.score += points_earned
+            # Reset wagered amount for next event
+            player.wagered_amount = 0
     
     # Store results
     game_state.event_results[event_id] = results
@@ -362,16 +363,39 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str):
                         if (game_state.room.current_event.expires_at and 
                             current_time <= game_state.room.current_event.expires_at):
                             
-                            bet = PlayerBet(player_name=player_name, answer_id=answer_id)
-                            game_state.current_bets[player_name] = bet
-                            game_state.room.players[player_name].current_bet = answer_id
+                            # Calculate wager amount based on total events
+                            from game_data import get_events_for_game
+                            events_for_game = get_events_for_game("lions_ravens_demo")  # Hardcoded for demo
+                            wager_amount = game_state.calculate_wager_amount(len(events_for_game))
                             
-                            # Send personal confirmation to the player who placed the bet
-                            bet_confirmation = WebSocketMessage(
-                                type=MessageType.BET_PLACED,
-                                data={"answer_id": answer_id, "message": "Bet placed successfully"}
-                            )
-                            await manager.send_personal_message(bet_confirmation.model_dump(), websocket)
+                            # Check if player has enough points to wager
+                            player = game_state.room.players[player_name]
+                            if player.score >= wager_amount:
+                                bet = PlayerBet(player_name=player_name, answer_id=answer_id)
+                                game_state.current_bets[player_name] = bet
+                                player.current_bet = answer_id
+                                player.wagered_amount = wager_amount
+                                
+                                # Deduct wager from player's score immediately
+                                player.score -= wager_amount
+                                
+                                # Send personal confirmation to the player who placed the bet
+                                bet_confirmation = WebSocketMessage(
+                                    type=MessageType.BET_PLACED,
+                                    data={
+                                        "answer_id": answer_id, 
+                                        "wagered_amount": wager_amount,
+                                        "message": f"Bet placed! Wagered {wager_amount} points"
+                                    }
+                                )
+                                await manager.send_personal_message(bet_confirmation.model_dump(), websocket)
+                            else:
+                                # Not enough points to wager
+                                error_message = WebSocketMessage(
+                                    type=MessageType.ERROR,
+                                    data={"message": f"Not enough points to wager {wager_amount} points"}
+                                )
+                                await manager.send_personal_message(error_message.model_dump(), websocket)
                         else:
                             # Betting window closed
                             error_message = WebSocketMessage(

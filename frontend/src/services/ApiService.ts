@@ -1,5 +1,5 @@
-const API_BASE_URL = 'http://128.61.62.178:8000';
-const WS_BASE_URL = 'ws://128.61.62.178:8000';
+const API_BASE_URL = 'http://localhost:8000';
+const WS_BASE_URL = 'ws://localhost:8000';
 
 interface CreateRoomRequest {
   name: string;

@@ -51,7 +51,7 @@ DEMO_EVENTS = [
         ],
         correct_answer_id=1,
         probability=0.45,  # Medium probability
-        points_reward=50,
+        points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=30,
         resolution_delay_seconds=10  # 10s delay for suspense
     ),
@@ -66,7 +66,7 @@ DEMO_EVENTS = [
         ],
         correct_answer_id=2,
         probability=0.6,  # Higher probability
-        points_reward=25,
+        points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=20,
         resolution_delay_seconds=8  # Shorter delay for quick play
     ),
@@ -79,7 +79,7 @@ DEMO_EVENTS = [
         ],
         correct_answer_id=2,
         probability=0.25,  # Lower probability
-        points_reward=100,
+        points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=25,
         resolution_delay_seconds=12  # Longer delay for higher stakes
     ),
@@ -93,7 +93,7 @@ DEMO_EVENTS = [
         ],
         correct_answer_id=1,
         probability=0.4,  # Even-ish odds
-        points_reward=50,
+        points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=35,
         resolution_delay_seconds=15  # Longer delay for scoring prediction
     ),
@@ -106,7 +106,7 @@ DEMO_EVENTS = [
         ],
         correct_answer_id=2,
         probability=0.8,  # High probability
-        points_reward=10,
+        points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=15,
         resolution_delay_seconds=5  # Quick resolution for simple question
     ),
@@ -120,7 +120,7 @@ DEMO_EVENTS = [
         ],
         correct_answer_id=2,
         probability=0.35,  # Lower probability
-        points_reward=150,
+        points_reward=33,  # Wager amount: 200/6 = 33 points
         timer_seconds=45,
         resolution_delay_seconds=20  # Longest delay for final prediction
     )

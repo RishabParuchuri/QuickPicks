@@ -18,8 +18,9 @@ class GameStatus(str, Enum):
 
 class Player(BaseModel):
     name: str
-    score: int = 0
+    score: int = 200  # Everyone starts with 200 points
     current_bet: Optional[int] = None
+    wagered_amount: int = 0  # Points wagered on current question
     joined_at: datetime = Field(default_factory=datetime.now)
 
     class Config:
@@ -97,18 +98,45 @@ class GameState(BaseModel):
                 })
         return sorted(leaderboard, key=lambda x: x.get("score", 0), reverse=True)
 
-    def calculate_points(self, probability: float) -> int:
-        """Calculate points based on event probability"""
-        if probability >= 0.8:
-            return 10  # Very likely events
-        elif probability >= 0.6:
-            return 25  # Somewhat likely events
-        elif probability >= 0.4:
-            return 50  # Even odds
-        elif probability >= 0.2:
-            return 100  # Unlikely events
+    def calculate_wager_amount(self, total_events: int) -> int:
+        """Calculate wager amount per question: 200/N points (rounded down)"""
+        return 200 // total_events
+    
+    def calculate_points_distribution(self, event_id: str, correct_answer_id: int) -> Dict[str, int]:
+        """Calculate point distribution for an event using wagering system"""
+        results = {}
+        total_wagered = 0
+        correct_players = []
+        
+        # Find all players who bet on this event and identify correct answers
+        for player_name, bet in self.current_bets.items():
+            if player_name in self.room.players:
+                player = self.room.players[player_name]
+                wager = player.wagered_amount
+                total_wagered += wager
+                
+                if bet.answer_id == correct_answer_id:
+                    correct_players.append(player_name)
+        
+        # Check if anyone got the answer right
+        if correct_players and total_wagered > 0:
+            # Distribute winnings among correct players (round down)
+            points_per_winner = total_wagered // len(correct_players)
+            for player_name in correct_players:
+                results[player_name] = points_per_winner
+            
+            # Players with wrong answers get 0 points but still lose their wager
+            for player_name, bet in self.current_bets.items():
+                if player_name not in results:
+                    results[player_name] = 0
         else:
-            return 200  # Very unlikely events
+            # No one got the answer right - everyone gets their wager back
+            for player_name, bet in self.current_bets.items():
+                if player_name in self.room.players:
+                    wager = self.room.players[player_name].wagered_amount
+                    results[player_name] = wager  # Return their wagered amount
+                
+        return results
 
 
 # WebSocket Message Types
