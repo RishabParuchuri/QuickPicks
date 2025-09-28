@@ -19,7 +19,7 @@ AVAILABLE_GAMES = [
         "name": "Vikings vs Steelers @ 9:30AM",
         "status": "inactive",
         "has_events": False
-    }
+    },
     {
         "id": "commanders_falcons",
         "name": "Commanders vs Falcons @ 1:00PM", 
